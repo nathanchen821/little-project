@@ -1,7 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Authenticator } from '@aws-amplify/ui-react';
-import App from "./App.tsx";
 import LandingPage from "./LandingPage.tsx";
 import "./index.css";
 import '@aws-amplify/ui-react/styles.css';
@@ -17,7 +16,7 @@ function Router() {
   if (path === '/app') {
     return (
       <Authenticator>
-        <App />
+        <LandingPage />
       </Authenticator>
     );
   }

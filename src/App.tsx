@@ -1,25 +1,14 @@
 import { useEffect, useState } from "react";
-import type { Schema } from "../amplify/data/resource";
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { generateClient } from "aws-amplify/data";
 import { updateUserAttributes, fetchUserAttributes } from 'aws-amplify/auth';
-
-const client = generateClient<Schema>();
 
 function App() {
   const { user, signOut } = useAuthenticator();
 
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [displayNameInput, setDisplayNameInput] = useState("");
   const [updatingDisplayName, setUpdatingDisplayName] = useState(false);
   const [error, setError] = useState("");
   const [userAttributes, setUserAttributes] = useState<any>({});
-
-  useEffect(() => {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => setTodos([...data.items]),
-    });
-  }, []);
 
   // Fetch user attributes on mount and after update
   useEffect(() => {
@@ -59,9 +48,6 @@ function App() {
     }
   }
 
-  function createTodo() {
-    client.models.Todo.create({ content: window.prompt("Todo content") });
-  }
 
   // Helper to get preferredUsername from fetched user attributes
   const getDisplayName = () => {
@@ -174,8 +160,8 @@ function App() {
           {error && <div style={{ color: '#ef4444', marginTop: '0.5rem', fontSize: '0.9rem' }}>{error}</div>}
         </div>
 
-        {/* Todo Section */}
-        <div style={{
+        {/* Todo Section - Hidden for now */}
+        {/* <div style={{
           background: 'white',
           padding: '1.5rem',
           borderRadius: '8px',
@@ -227,7 +213,7 @@ function App() {
               ))}
             </ul>
           )}
-        </div>
+        </div> */}
 
         {/* Success Message */}
         <div style={{

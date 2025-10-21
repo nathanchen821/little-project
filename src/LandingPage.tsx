@@ -1,246 +1,291 @@
 import React from 'react';
 
 const LandingPage: React.FC = () => {
+  // Check if user is authenticated by looking at the URL
+  const isAuthenticated = window.location.pathname === '/app';
+  
   const handleSignInClick = () => {
     window.location.href = '/app';
+  };
+
+  const handleSignOutClick = () => {
+    window.location.href = '/';
   };
 
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-      display: 'flex',
-      flexDirection: 'column'
+      background: '#f8f9fa',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      lineHeight: '1.6',
+      color: '#333',
+      margin: 0,
+      padding: 0
     }}>
-      {/* Header with Sign In Button */}
-      <header style={{
+      {/* Navigation - FIXED POSITIONING */}
+      <nav style={{
+        background: 'linear-gradient(135deg, #4CAF50, #2196F3)',
+        color: 'white',
+        padding: '1rem 2rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '1rem 4rem',
-        background: 'rgba(255, 255, 255, 0.9)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid #e5e7eb',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+        position: 'relative',
+        top: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        zIndex: 1000
       }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b' }}>
-          Amplify
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1.5rem' }}>🤝</span>
+          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Little Project</span>
         </div>
-        <button
-          onClick={handleSignInClick}
-          style={{
-            background: '#3b82f6',
-            border: 'none',
-            color: 'white',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            fontWeight: '500',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.background = '#2563eb';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.background = '#3b82f6';
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
-          }}
-        >
-          Sign In
-        </button>
-      </header>
+        <div style={{ display: 'flex', gap: '2rem' }}>
+          <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>Home</a>
+          <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Projects</a>
+          {isAuthenticated && (
+            <>
+              <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
+              <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Impact</a>
+              <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Profile</a>
+            </>
+          )}
+          {isAuthenticated ? (
+            <button
+              onClick={handleSignOutClick}
+              style={{
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '500'
+              }}
+            >
+              Sign Out
+            </button>
+          ) : (
+            <button
+              onClick={handleSignInClick}
+              style={{
+                background: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '500'
+              }}
+            >
+              Sign In
+            </button>
+          )}
+        </div>
+      </nav>
 
-      {/* Main Content */}
+      {/* Main Content - exactly like demo */}
       <main style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '6rem 4rem',
-        textAlign: 'center',
-        background: 'transparent',
         maxWidth: '1200px',
         margin: '0 auto',
-        width: '100%'
+        padding: '2rem'
       }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '16px',
-          padding: '4rem 3rem',
-          width: '100%',
-          maxWidth: '1000px',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+        {/* Hero Section */}
+        <header style={{
+          textAlign: 'center',
+          padding: '2rem 0',
+          background: 'linear-gradient(135deg, #E8F5E8, #E3F2FD)',
+          borderRadius: '15px',
+          marginBottom: '0'
         }}>
           <h1 style={{
-            color: '#1e293b',
-            fontSize: '3.5rem',
-            marginBottom: '1.5rem',
-            fontWeight: '800',
-            letterSpacing: '-0.02em'
+            fontSize: '2.5rem',
+            marginBottom: '1rem',
+            color: '#2E7D32'
           }}>
-            Welcome to Amplify
+            Make a Big Impact with Little Projects
           </h1>
-          
           <p style={{
-            color: '#64748b',
-            fontSize: '1.25rem',
-            marginBottom: '3rem',
-            lineHeight: '1.7',
-            maxWidth: '600px',
-            margin: '0 auto 3rem auto'
+            fontSize: '1.2rem',
+            marginBottom: '2rem',
+            color: '#666'
           }}>
-            Your modern todo application powered by AWS Amplify. 
-            Sign in to manage your tasks and stay organized.
+            Connect with local service opportunities in Blacksburg, Virginia
           </p>
+          <button style={{
+            background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+            color: 'white',
+            border: 'none',
+            padding: '1rem 2rem',
+            fontSize: '1.1rem',
+            borderRadius: '25px',
+            cursor: 'pointer',
+            transition: 'transform 0.3s'
+          }}>
+            Browse Projects
+          </button>
+        </header>
 
+        {/* Featured Projects */}
+        <section style={{ marginBottom: '2rem' }}>
+          <h2 style={{
+            fontSize: '2rem',
+            marginBottom: '2rem',
+            color: '#2E7D32',
+            textAlign: 'center'
+          }}>
+            Featured Projects
+          </h2>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '2rem',
-            marginBottom: '3rem'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '2rem'
           }}>
             <div style={{
-              background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+              background: 'white',
+              borderRadius: '15px',
               padding: '1.5rem',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              textAlign: 'left',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+              transition: 'transform 0.3s'
             }}>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', 
-                borderRadius: '8px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                marginBottom: '1rem',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-              }}>
-                <span style={{ color: 'white', fontSize: '1.2rem' }}>✨</span>
+              <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>📚</div>
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Tutoring at Local Library</h3>
+              <p style={{ color: '#666', marginBottom: '1rem' }}>Help elementary students with reading and homework</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                <span>📅 Jun 15, 2025</span>
+                <span>⏱️ 2 hours</span>
+                <span>📍 Blacksburg Library</span>
               </div>
-              <h3 style={{ color: '#1e293b', margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: '600' }}>
-                Modern UI
-              </h3>
-              <p style={{ color: '#64748b', margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>
-                Beautiful, responsive design that works on all devices
-              </p>
+              <button style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #FFC107, #FF9800)',
+                color: 'white',
+                border: 'none',
+                padding: '0.8rem',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'transform 0.3s'
+              }}>
+                Join Project
+              </button>
             </div>
-            
+
             <div style={{
-              background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+              background: 'white',
+              borderRadius: '15px',
               padding: '1.5rem',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              textAlign: 'left',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+              transition: 'transform 0.3s'
             }}>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
-                borderRadius: '8px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                marginBottom: '1rem',
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-              }}>
-                <span style={{ color: 'white', fontSize: '1.2rem' }}>🔐</span>
+              <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>🌱</div>
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Community Garden Cleanup</h3>
+              <p style={{ color: '#666', marginBottom: '1rem' }}>Help maintain the neighborhood community garden</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                <span>📅 Jul 8, 2025</span>
+                <span>⏱️ 3 hours</span>
+                <span>📍 Blacksburg Municipal Park</span>
               </div>
-              <h3 style={{ color: '#1e293b', margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: '600' }}>
-                Secure Auth
-              </h3>
-              <p style={{ color: '#64748b', margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>
-                AWS-powered authentication with enterprise-grade security
-              </p>
+              <button style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #FFC107, #FF9800)',
+                color: 'white',
+                border: 'none',
+                padding: '0.8rem',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'transform 0.3s'
+              }}>
+                Join Project
+              </button>
             </div>
-            
+
             <div style={{
-              background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+              background: 'white',
+              borderRadius: '15px',
               padding: '1.5rem',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              textAlign: 'left',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+              transition: 'transform 0.3s'
             }}>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', 
-                borderRadius: '8px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                marginBottom: '1rem',
-                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
-              }}>
-                <span style={{ color: 'white', fontSize: '1.2rem' }}>⚡</span>
+              <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>🎓</div>
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Youth Tutoring</h3>
+              <p style={{ color: '#666', marginBottom: '1rem' }}>Help middle and high school students with homework and study skills</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                <span>📅 Aug 12, 2025</span>
+                <span>⏱️ 4 hours</span>
+                <span>📍 Blacksburg Community Center</span>
               </div>
-              <h3 style={{ color: '#1e293b', margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: '600' }}>
-                Real-time
-              </h3>
-              <p style={{ color: '#64748b', margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>
-                Live updates and sync across all your devices
-              </p>
+              <button style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #FFC107, #FF9800)',
+                color: 'white',
+                border: 'none',
+                padding: '0.8rem',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'transform 0.3s'
+              }}>
+                Join Project
+              </button>
             </div>
           </div>
+        </section>
 
-        </div>
+        {/* Quick Stats */}
+        <section style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '2rem',
+          marginBottom: '3rem'
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '2rem',
+            borderRadius: '15px',
+            textAlign: 'center',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{ fontSize: '2.5rem', color: '#4CAF50', marginBottom: '0.5rem' }}>47</h3>
+            <p style={{ color: '#666', fontWeight: 'bold' }}>Hours Volunteered</p>
+          </div>
+          <div style={{
+            background: 'white',
+            padding: '2rem',
+            borderRadius: '15px',
+            textAlign: 'center',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{ fontSize: '2.5rem', color: '#4CAF50', marginBottom: '0.5rem' }}>8</h3>
+            <p style={{ color: '#666', fontWeight: 'bold' }}>Projects Completed</p>
+          </div>
+          <div style={{
+            background: 'white',
+            padding: '2rem',
+            borderRadius: '15px',
+            textAlign: 'center',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{ fontSize: '2.5rem', color: '#4CAF50', marginBottom: '0.5rem' }}>12</h3>
+            <p style={{ color: '#666', fontWeight: 'bold' }}>Active Volunteers</p>
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
       <footer style={{
-        padding: '2rem 4rem',
+        background: '#333',
+        color: 'white',
         textAlign: 'center',
-        background: 'rgba(255, 255, 255, 0.9)',
-        backdropFilter: 'blur(10px)',
-        borderTop: '1px solid #e5e7eb',
-        color: '#64748b',
-        fontSize: '0.9rem'
+        padding: '2rem',
+        marginTop: '3rem'
       }}>
-        <p style={{ margin: 0 }}>
-          Built with ❤️ using AWS Amplify and React
-        </p>
+        <p>&copy; 2024 Little Project. Making a difference, one small act at a time.</p>
       </footer>
     </div>
   );
