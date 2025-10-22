@@ -63,6 +63,7 @@ const LandingPage: React.FC = () => {
         <div style={{ display: 'flex', gap: '2rem' }}>
           <a href="/" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>Home</a>
           <a href="/projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Projects</a>
+          <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Leaderboard</a>
           {isAuthenticated && (
             <>
               <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
@@ -133,20 +134,6 @@ const LandingPage: React.FC = () => {
           }}>
             Connect with local service opportunities in Blacksburg, Virginia
           </p>
-          <a href="/projects" style={{
-            background: 'linear-gradient(135deg, #4CAF50, #45a049)',
-            color: 'white',
-            border: 'none',
-            padding: '1rem 2rem',
-            fontSize: '1.1rem',
-            borderRadius: '25px',
-            cursor: 'pointer',
-            transition: 'transform 0.3s',
-            textDecoration: 'none',
-            display: 'inline-block'
-          }}>
-            Browse Projects
-          </a>
         </header>
 
         {/* Featured Projects */}
@@ -295,6 +282,53 @@ const LandingPage: React.FC = () => {
           }}>
             <h3 style={{ fontSize: '2.5rem', color: '#4CAF50', marginBottom: '0.5rem' }}>12</h3>
             <p style={{ color: '#666', fontWeight: 'bold' }}>Active Volunteers</p>
+          </div>
+        </section>
+
+        {/* Leaderboard CTA */}
+        <section style={{
+          background: 'linear-gradient(135deg, #4CAF50, #2196F3)',
+          color: 'white',
+          padding: '3rem',
+          borderRadius: '15px',
+          textAlign: 'center',
+          marginBottom: '3rem',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+        }}>
+          <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>
+            🏆 See Who's Making a Difference
+          </h2>
+          <p style={{ fontSize: '1.2rem', marginBottom: '2rem', opacity: 0.9 }}>
+            Check out our leaderboard to see the top volunteers in your community and get inspired!
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a href="/leaderboard" style={{
+              background: 'white',
+              color: '#4CAF50',
+              textDecoration: 'none',
+              padding: '1rem 2rem',
+              borderRadius: '25px',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              transition: 'transform 0.3s',
+              display: 'inline-block'
+            }}>
+              🏆 View Leaderboard
+            </a>
+            <a href="/projects" style={{
+              background: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              textDecoration: 'none',
+              padding: '1rem 2rem',
+              borderRadius: '25px',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              transition: 'transform 0.3s',
+              display: 'inline-block',
+              border: '2px solid white'
+            }}>
+              📋 Browse Projects
+            </a>
           </div>
         </section>
       </main>

@@ -5,6 +5,7 @@ import LandingPage from "./LandingPage.tsx";
 import ProfilePage from "./ProfilePage.tsx";
 import ProjectsPage from "./ProjectsPage.tsx";
 import ProjectDetailsPage from "./ProjectDetailsPage.tsx";
+import LeaderboardPage from "./LeaderboardPage.tsx";
 import "./index.css";
 import '@aws-amplify/ui-react/styles.css';
 import { Amplify } from "aws-amplify";
@@ -163,6 +164,10 @@ function Router() {
   
   if (path === '/project/elementary-tutoring' || path === '/project/elementary-tutoring/') {
     return <ProjectDetailsPage />;
+  }
+  
+  if (path === '/leaderboard' || path === '/leaderboard/') {
+    return <LeaderboardPage />;
   }
   
   // Default to landing page for all other paths

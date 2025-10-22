@@ -37,7 +37,12 @@ const ProfilePage: React.FC = () => {
     peopleHelped: 15,
     goalHours: 50,
     goalProjects: 10,
-    goalPeople: 100
+    goalPeople: 100,
+    points: 250,
+    streak: 2,
+    rank: 15,
+    level: 3,
+    nextLevelPoints: 50
   };
 
   const mockAchievements = [
@@ -142,9 +147,10 @@ const ProfilePage: React.FC = () => {
         </div>
         <div style={{ display: 'flex', gap: '2rem' }}>
           <a href="/" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Home</a>
-          <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Projects</a>
+          <a href="/projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Projects</a>
           <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
           <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>My Achievement</a>
+          <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Leaderboard</a>
           <button
             onClick={handleSignOutClick}
             style={{
@@ -225,9 +231,11 @@ const ProfilePage: React.FC = () => {
                 High School Volunteer • Member since Nov 2025
               </p>
               <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#666' }}>
-                <span>{mockStats.hoursVolunteered} hours</span>
-                <span>{mockStats.projectsCompleted} projects</span>
-                <span>{mockStats.peopleHelped} lives helped</span>
+                <span>⏱️ {mockStats.hoursVolunteered} hours</span>
+                <span>📋 {mockStats.projectsCompleted} projects</span>
+                <span>👥 {mockStats.peopleHelped} lives helped</span>
+                <span>⭐ {mockStats.points} points</span>
+                <span>🔥 {mockStats.streak} week streak</span>
               </div>
             </div>
             <button style={{
@@ -250,13 +258,16 @@ const ProfilePage: React.FC = () => {
           display: 'flex',
           gap: '1rem',
           marginBottom: '2rem',
-          borderBottom: '2px solid #e2e8f0'
+          borderBottom: '2px solid #e2e8f0',
+          flexWrap: 'wrap'
         }}>
           {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'achievements', label: 'Achievements' },
-            { id: 'stories', label: 'Stories & Photos' },
-            { id: 'trophies', label: 'Trophies' }
+            { id: 'overview', label: 'Overview', icon: '📊' },
+            { id: 'achievements', label: 'Achievements', icon: '🏆' },
+            { id: 'social', label: 'Social', icon: '👥' },
+            { id: 'stories', label: 'Stories & Photos', icon: '📸' },
+            { id: 'trophies', label: 'Trophies', icon: '🏅' },
+            { id: 'challenges', label: 'Challenges', icon: '🎯' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -270,9 +281,13 @@ const ProfilePage: React.FC = () => {
                 cursor: 'pointer',
                 fontSize: '0.9rem',
                 fontWeight: '500',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
               }}
             >
+              <span>{tab.icon}</span>
               {tab.label}
             </button>
           ))}
@@ -281,6 +296,69 @@ const ProfilePage: React.FC = () => {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div>
+            {/* Level & Ranking */}
+            <section style={{ marginBottom: '2rem' }}>
+              <div style={{
+                background: 'white',
+                borderRadius: '15px',
+                padding: '2rem',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                marginBottom: '2rem'
+              }}>
+                <h2 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', color: '#2E7D32', textAlign: 'center' }}>
+                  🏆 Your Status
+                </h2>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '2rem',
+                  textAlign: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>⭐</div>
+                    <h3 style={{ fontSize: '2rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
+                      Level {mockStats.level}
+                    </h3>
+                    <p style={{ color: '#666', marginBottom: '1rem' }}>Volunteer Level</p>
+                    <div style={{
+                      background: '#e2e8f0',
+                      borderRadius: '10px',
+                      height: '8px',
+                      marginBottom: '0.5rem'
+                    }}>
+                      <div style={{
+                        background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+                        height: '100%',
+                        borderRadius: '10px',
+                        width: `${(mockStats.points / (mockStats.points + mockStats.nextLevelPoints)) * 100}%`
+                      }}></div>
+                    </div>
+                    <small style={{ color: '#666' }}>{mockStats.nextLevelPoints} points to next level</small>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🏅</div>
+                    <h3 style={{ fontSize: '2rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
+                      #{mockStats.rank}
+                    </h3>
+                    <p style={{ color: '#666', marginBottom: '1rem' }}>Overall Ranking</p>
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                      Top 15% of volunteers
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🔥</div>
+                    <h3 style={{ fontSize: '2rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
+                      {mockStats.streak}
+                    </h3>
+                    <p style={{ color: '#666', marginBottom: '1rem' }}>Week Streak</p>
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                      Keep it going!
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             {/* Impact Stats */}
             <section style={{ marginBottom: '2rem' }}>
               <h2 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', color: '#2E7D32' }}>
@@ -546,6 +624,222 @@ const ProfilePage: React.FC = () => {
               }}>
                 ✍️ Write Story
               </button>
+            </div>
+          </section>
+        )}
+
+        {/* Social Tab */}
+        {activeTab === 'social' && (
+          <section>
+            <h2 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', color: '#2E7D32' }}>
+              👥 Social & Friends
+            </h2>
+            
+            {/* Friends List */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '1rem', color: '#2E7D32' }}>
+                Your Volunteer Squad
+              </h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1.5rem'
+              }}>
+                {[
+                  { name: "Sarah Chen", school: "Blacksburg High", avatar: "👩‍🎓", hours: 67.5, streak: 8, status: "online" },
+                  { name: "Marcus Johnson", school: "Christiansburg High", avatar: "👨‍🎓", hours: 58.2, streak: 5, status: "offline" },
+                  { name: "Emily Rodriguez", school: "Blacksburg High", avatar: "👩‍🎓", hours: 52.8, streak: 6, status: "online" }
+                ].map((friend, index) => (
+                  <div key={index} style={{
+                    background: 'white',
+                    borderRadius: '15px',
+                    padding: '1.5rem',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}>
+                    <div style={{ position: 'relative' }}>
+                      <div style={{ fontSize: '2.5rem' }}>{friend.avatar}</div>
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '0',
+                        right: '0',
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        background: friend.status === 'online' ? '#4CAF50' : '#ccc',
+                        border: '2px solid white'
+                      }}></div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ fontSize: '1.1rem', marginBottom: '0.3rem', color: '#2E7D32' }}>
+                        {friend.name}
+                      </h4>
+                      <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#666' }}>
+                        {friend.school}
+                      </p>
+                      <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#666' }}>
+                        <span>⏱️ {friend.hours}h</span>
+                        <span>🔥 {friend.streak}w</span>
+                      </div>
+                    </div>
+                    <button style={{
+                      background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '15px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem'
+                    }}>
+                      👋 Wave
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Team Challenges */}
+            <div>
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '1rem', color: '#2E7D32' }}>
+                Team Challenges
+              </h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '1.5rem'
+              }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)',
+                  color: 'white',
+                  padding: '1.5rem',
+                  borderRadius: '15px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏫</div>
+                  <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>School Rivalry</h4>
+                  <p style={{ fontSize: '0.9rem', marginBottom: '1rem', opacity: 0.9 }}>
+                    Blacksburg vs Christiansburg
+                  </p>
+                  <div style={{ background: 'rgba(255,255,255,0.2)', padding: '0.5rem', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}>Blacksburg High</div>
+                    <div style={{ background: 'rgba(255,255,255,0.3)', borderRadius: '5px', height: '6px' }}>
+                      <div style={{ background: 'white', height: '100%', borderRadius: '5px', width: '65%' }}></div>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', marginTop: '0.3rem' }}>2,847 pts</div>
+                  </div>
+                </div>
+                <div style={{
+                  background: 'linear-gradient(135deg, #4ECDC4, #44A08D)',
+                  color: 'white',
+                  padding: '1.5rem',
+                  borderRadius: '15px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🤝</div>
+                  <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Friend Challenge</h4>
+                  <p style={{ fontSize: '0.9rem', marginBottom: '1rem', opacity: 0.9 }}>
+                    Complete 5 projects with friends
+                  </p>
+                  <div style={{ background: 'rgba(255,255,255,0.2)', padding: '0.5rem', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.8rem', marginBottom: '0.3rem' }}>Progress</div>
+                    <div style={{ background: 'rgba(255,255,255,0.3)', borderRadius: '5px', height: '6px' }}>
+                      <div style={{ background: 'white', height: '100%', borderRadius: '5px', width: '40%' }}></div>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', marginTop: '0.3rem' }}>2/5 projects</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Challenges Tab */}
+        {activeTab === 'challenges' && (
+          <section>
+            <h2 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', color: '#2E7D32' }}>
+              🎯 Weekly Challenges
+            </h2>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '2rem'
+            }}>
+              {[
+                {
+                  id: 1,
+                  title: "Streak Master",
+                  description: "Volunteer 3 weeks in a row",
+                  icon: "🔥",
+                  progress: 2,
+                  total: 3,
+                  reward: "50 points",
+                  color: "linear-gradient(135deg, #FF6B6B, #FF8E53)"
+                },
+                {
+                  id: 2,
+                  title: "Community Helper",
+                  description: "Complete 2 community service projects",
+                  icon: "🤝",
+                  progress: 1,
+                  total: 2,
+                  reward: "75 points",
+                  color: "linear-gradient(135deg, #4ECDC4, #44A08D)"
+                },
+                {
+                  id: 3,
+                  title: "Education Champion",
+                  description: "Volunteer 5 hours in education",
+                  icon: "📚",
+                  progress: 4,
+                  total: 5,
+                  reward: "100 points",
+                  color: "linear-gradient(135deg, #A8E6CF, #7FCDCD)"
+                },
+                {
+                  id: 4,
+                  title: "Weekend Warrior",
+                  description: "Complete a project on both weekend days",
+                  icon: "⚡",
+                  progress: 0,
+                  total: 1,
+                  reward: "25 points",
+                  color: "linear-gradient(135deg, #FFD93D, #FF6B6B)"
+                }
+              ].map(challenge => (
+                <div key={challenge.id} style={{
+                  background: challenge.color,
+                  color: 'white',
+                  padding: '2rem',
+                  borderRadius: '15px',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{challenge.icon}</div>
+                  <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem' }}>{challenge.title}</h3>
+                  <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', opacity: 0.9 }}>
+                    {challenge.description}
+                  </p>
+                  <div style={{ background: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '10px', marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>Progress</div>
+                    <div style={{ background: 'rgba(255,255,255,0.3)', borderRadius: '5px', height: '8px', marginBottom: '0.5rem' }}>
+                      <div style={{ 
+                        background: 'white', 
+                        height: '100%', 
+                        borderRadius: '5px', 
+                        width: `${(challenge.progress / challenge.total) * 100}%` 
+                      }}></div>
+                    </div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+                      {challenge.progress}/{challenge.total}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+                    🎁 Reward: {challenge.reward}
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         )}
