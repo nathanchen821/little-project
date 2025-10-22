@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { Authenticator } from '@aws-amplify/ui-react';
 import LandingPage from "./LandingPage.tsx";
+import ProfilePage from "./ProfilePage.tsx";
 import "./index.css";
 import '@aws-amplify/ui-react/styles.css';
 import { Amplify } from "aws-amplify";
@@ -147,6 +148,10 @@ function Router() {
   
   if (path === '/app') {
     return <SignInPage />;
+  }
+  
+  if (path === '/profile') {
+    return <ProfilePage />;
   }
   
   // Default to landing page for all other paths

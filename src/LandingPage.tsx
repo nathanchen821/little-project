@@ -66,7 +66,7 @@ const LandingPage: React.FC = () => {
           {isAuthenticated && (
             <>
               <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
-              <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Profile</a>
+              <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Achievement</a>
             </>
           )}
           {isAuthenticated ? (
