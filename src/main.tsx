@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { Authenticator } from '@aws-amplify/ui-react';
 import LandingPage from "./LandingPage.tsx";
 import ProfilePage from "./ProfilePage.tsx";
+import CompleteProfilePage from "./CompleteProfilePage.tsx";
 import ProjectsPage from "./ProjectsPage.tsx";
 import ProjectDetailsPage from "./ProjectDetailsPage.tsx";
 import LeaderboardPage from "./LeaderboardPage.tsx";
@@ -157,6 +158,10 @@ function Router() {
   
   if (path === '/profile' || path === '/profile/') {
     return <ProfilePage />;
+  }
+  
+  if (path === '/complete-profile' || path === '/complete-profile/') {
+    return <CompleteProfilePage />;
   }
   
   if (path === '/projects' || path === '/projects/') {

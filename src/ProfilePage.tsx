@@ -1,22 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
+import { signOut as amplifySignOut } from 'aws-amplify/auth';
+import { getOrCreateUserProfile, getUserStats, isProfileComplete, type UserProfile } from './utils/userProfile';
 
 const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userStats, setUserStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuthState();
+    loadUserData();
   }, []);
 
-  const checkAuthState = async () => {
+  const loadUserData = async () => {
     try {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
+      const profile = await getOrCreateUserProfile();
+      
+      if (profile) {
+        setUserProfile(profile);
+
+        // Check if profile is complete, redirect if not
+        if (!isProfileComplete(profile)) {
+          window.location.href = '/complete-profile';
+          return;
+        }
+
+        // Load user stats
+        const stats = await getUserStats(profile.id);
+        setUserStats(stats);
+      }
     } catch (error) {
-      console.error('Error getting user:', error);
-      // Redirect to sign in if not authenticated
+      console.error('Error loading user data:', error);
       window.location.href = '/app';
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -29,21 +46,23 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: '#f8f9fa'
+      }}>
+        <div style={{ fontSize: '1.5rem', color: '#666' }}>Loading your profile...</div>
+      </div>
+    );
+  }
 
-  // Mock data - in a real app, this would come from your backend
-  const mockStats = {
-    hoursVolunteered: 12.5,
-    projectsCompleted: 3,
-    peopleHelped: 15,
-    goalHours: 50,
-    goalProjects: 10,
-    goalPeople: 100,
-    points: 250,
-    streak: 2,
-    rank: 15,
-    level: 3,
-    nextLevelPoints: 50
-  };
+  if (!userProfile) {
+    return null;
+  }
 
   const mockAchievements = [
     {
@@ -225,29 +244,36 @@ const ProfilePage: React.FC = () => {
             </div>
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: '1.8rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
-                {user?.signInDetails?.loginId || user?.username || 'Volunteer'}
+                {userProfile.firstName} {userProfile.lastName}
               </h2>
-              <p style={{ color: '#666', marginBottom: '1rem' }}>
-                High School Volunteer • Member since Nov 2025
+              <p style={{ color: '#666', marginBottom: '0.5rem' }}>
+                {userProfile.school} • {userProfile.grade}
               </p>
+              {userProfile.bio && (
+                <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.9rem', fontStyle: 'italic' }}>
+                  "{userProfile.bio}"
+                </p>
+              )}
               <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#666' }}>
-                <span>⏱️ {mockStats.hoursVolunteered} hours</span>
-                <span>📋 {mockStats.projectsCompleted} projects</span>
-                <span>👥 {mockStats.peopleHelped} lives helped</span>
-                <span>⭐ {mockStats.points} points</span>
-                <span>🔥 {mockStats.streak} week streak</span>
+                <span>⏱️ {userProfile.totalHours} hours</span>
+                <span>📋 {userProfile.totalProjects} projects</span>
+                <span>⭐ {userProfile.points} points</span>
+                <span>🔥 {userProfile.currentStreak} week streak</span>
               </div>
             </div>
-            <button style={{
-              background: 'linear-gradient(135deg, #4CAF50, #45a049)',
-              color: 'white',
-              border: 'none',
-              padding: '0.8rem 1.5rem',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              fontWeight: '500'
-            }}>
+            <button 
+              onClick={() => window.location.href = '/complete-profile'}
+              style={{
+                background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+                color: 'white',
+                border: 'none',
+                padding: '0.8rem 1.5rem',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '500'
+              }}
+            >
               ✏️ Edit Profile
             </button>
           </div>
@@ -317,7 +343,7 @@ const ProfilePage: React.FC = () => {
                   <div>
                     <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>⭐</div>
                     <h3 style={{ fontSize: '2rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                      Level {mockStats.level}
+                      Level {userProfile.level}
                     </h3>
                     <p style={{ color: '#666', marginBottom: '1rem' }}>Volunteer Level</p>
                     <div style={{
@@ -330,29 +356,29 @@ const ProfilePage: React.FC = () => {
                         background: 'linear-gradient(135deg, #4CAF50, #45a049)',
                         height: '100%',
                         borderRadius: '10px',
-                        width: `${(mockStats.points / (mockStats.points + mockStats.nextLevelPoints)) * 100}%`
+                        width: `${Math.min((userProfile.points % 100) / 100 * 100, 100)}%`
                       }}></div>
                     </div>
-                    <small style={{ color: '#666' }}>{mockStats.nextLevelPoints} points to next level</small>
+                    <small style={{ color: '#666' }}>{100 - (userProfile.points % 100)} points to next level</small>
                   </div>
                   <div>
                     <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🏅</div>
                     <h3 style={{ fontSize: '2rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                      #{mockStats.rank}
+                      --
                     </h3>
                     <p style={{ color: '#666', marginBottom: '1rem' }}>Overall Ranking</p>
                     <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                      Top 15% of volunteers
+                      Check leaderboard
                     </div>
                   </div>
                   <div>
                     <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🔥</div>
                     <h3 style={{ fontSize: '2rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                      {mockStats.streak}
+                      {userProfile.currentStreak}
                     </h3>
                     <p style={{ color: '#666', marginBottom: '1rem' }}>Week Streak</p>
                     <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                      Keep it going!
+                      {userProfile.currentStreak > 0 ? 'Keep it going!' : 'Start your streak!'}
                     </div>
                   </div>
                 </div>
@@ -377,7 +403,7 @@ const ProfilePage: React.FC = () => {
                   textAlign: 'center'
                 }}>
                   <h3 style={{ fontSize: '3rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                    {mockStats.hoursVolunteered}
+                    {userProfile.totalHours}
                   </h3>
                   <p style={{ color: '#666', fontWeight: 'bold', marginBottom: '1rem' }}>
                     Hours Volunteered
@@ -392,10 +418,10 @@ const ProfilePage: React.FC = () => {
                       background: 'linear-gradient(135deg, #4CAF50, #45a049)',
                       height: '100%',
                       borderRadius: '10px',
-                      width: `${(mockStats.hoursVolunteered / mockStats.goalHours) * 100}%`
+                      width: `${Math.min((userProfile.totalHours / 50) * 100, 100)}%`
                     }}></div>
                   </div>
-                  <small style={{ color: '#666' }}>Goal: {mockStats.goalHours} hours</small>
+                  <small style={{ color: '#666' }}>Goal: 50 hours</small>
                 </div>
 
                 <div style={{
@@ -406,7 +432,7 @@ const ProfilePage: React.FC = () => {
                   textAlign: 'center'
                 }}>
                   <h3 style={{ fontSize: '3rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                    {mockStats.projectsCompleted}
+                    {userProfile.totalProjects}
                   </h3>
                   <p style={{ color: '#666', fontWeight: 'bold', marginBottom: '1rem' }}>
                     Projects Completed
@@ -421,10 +447,10 @@ const ProfilePage: React.FC = () => {
                       background: 'linear-gradient(135deg, #4CAF50, #45a049)',
                       height: '100%',
                       borderRadius: '10px',
-                      width: `${(mockStats.projectsCompleted / mockStats.goalProjects) * 100}%`
+                      width: `${Math.min((userProfile.totalProjects / 10) * 100, 100)}%`
                     }}></div>
                   </div>
-                  <small style={{ color: '#666' }}>Goal: {mockStats.goalProjects} projects</small>
+                  <small style={{ color: '#666' }}>Goal: 10 projects</small>
                 </div>
 
                 <div style={{
@@ -435,10 +461,10 @@ const ProfilePage: React.FC = () => {
                   textAlign: 'center'
                 }}>
                   <h3 style={{ fontSize: '3rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                    {mockStats.peopleHelped}
+                    {userStats?.completedActivities || 0}
                   </h3>
                   <p style={{ color: '#666', fontWeight: 'bold', marginBottom: '1rem' }}>
-                    Lives Impacted
+                    Activities Completed
                   </p>
                   <div style={{
                     background: '#e2e8f0',
@@ -450,10 +476,10 @@ const ProfilePage: React.FC = () => {
                       background: 'linear-gradient(135deg, #4CAF50, #45a049)',
                       height: '100%',
                       borderRadius: '10px',
-                      width: `${(mockStats.peopleHelped / mockStats.goalPeople) * 100}%`
+                      width: `${Math.min(((userStats?.completedActivities || 0) / 20) * 100, 100)}%`
                     }}></div>
                   </div>
-                  <small style={{ color: '#666' }}>Goal: {mockStats.goalPeople} lives</small>
+                  <small style={{ color: '#666' }}>Goal: 20 activities</small>
                 </div>
               </div>
             </section>
