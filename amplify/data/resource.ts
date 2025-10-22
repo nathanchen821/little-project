@@ -1,17 +1,332 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
-/*== STEP 1 ===============================================================
-The section below creates a Todo database table with a "content" field. Try
-adding a new "isDone" field as a boolean. The authorization rule below
-specifies that any user authenticated via an API key can "create", "read",
-"update", and "delete" any "Todo" records.
-=========================================================================*/
+/**
+ * Little Project - Data Model Schema
+ * AWS Amplify Gen2 with DynamoDB
+ * 
+ * This schema defines all data models for the volunteer management platform
+ * connecting high school students with local volunteer opportunities.
+ */
+
 const schema = a.schema({
-  Todo: a
+  // ============================================================================
+  // CORE ENTITIES
+  // ============================================================================
+  
+  /**
+   * Users - High school students and administrators
+   */
+  User: a
     .model({
-      content: a.string(),
+      email: a.string().required(),
+      firstName: a.string().required(),
+      lastName: a.string().required(),
+      school: a.string(),
+      grade: a.string(),
+      phone: a.string(),
+      avatar: a.string(),
+      bio: a.string(),
+      interests: a.string().array(),
+      availability: a.string().array(),
+      locationPreferences: a.string().array(),
+      privacySettings: a.json(),
+      totalHours: a.float().default(0),
+      totalProjects: a.integer().default(0),
+      currentStreak: a.integer().default(0),
+      points: a.integer().default(0),
+      level: a.integer().default(1),
+      isAdmin: a.boolean().default(false),
+      isActive: a.boolean().default(true),
+      lastLoginAt: a.datetime(),
+      
+      // Relationships
+      createdProjects: a.hasMany('Project', 'createdById'),
+      volunteerActivities: a.hasMany('VolunteerActivity', 'userId'),
+      userAchievements: a.hasMany('UserAchievement', 'userId'),
+      leaderboardEntries: a.hasMany('Leaderboard', 'userId'),
+      adminActivities: a.hasMany('AdminActivity', 'adminId'),
+      userChallenges: a.hasMany('UserChallenge', 'userId'),
     })
-    .authorization(allow => [allow.owner()]),
+    .authorization(allow => [
+      allow.owner(),
+      allow.authenticated().to(['read']),
+      allow.group('admins'),
+    ]),
+
+  /**
+   * Organizations - Partner organizations hosting volunteer projects
+   */
+  Organization: a
+    .model({
+      name: a.string().required(),
+      description: a.string(),
+      category: a.string(),
+      address: a.string(),
+      city: a.string().required(),
+      state: a.string().required(),
+      contactEmail: a.string(),
+      contactPhone: a.string(),
+      website: a.string(),
+      logo: a.string(),
+      isVerified: a.boolean().default(false),
+      isActive: a.boolean().default(true),
+      totalProjects: a.integer().default(0),
+      totalVolunteerHours: a.float().default(0),
+      rating: a.float(),
+      
+      // Relationships
+      projects: a.hasMany('Project', 'organizationId'),
+    })
+    .authorization(allow => [
+      allow.authenticated().to(['read']),
+      allow.group('admins'),
+    ]),
+
+  /**
+   * ProjectCategories - Project categories and their configurations
+   */
+  ProjectCategory: a
+    .model({
+      name: a.string().required(),
+      description: a.string(),
+      icon: a.string(),
+      color: a.string(),
+      isActive: a.boolean().default(true),
+      sortOrder: a.integer(),
+    })
+    .authorization(allow => [
+      allow.authenticated().to(['read']),
+      allow.group('admins'),
+    ]),
+
+  // ============================================================================
+  // PROJECT MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Projects - Volunteer opportunities and activities
+   */
+  Project: a
+    .model({
+      title: a.string().required(),
+      description: a.string().required(),
+      category: a.string().required(),
+      organizationId: a.id(),
+      createdById: a.id(),
+      location: a.string().required(),
+      address: a.string(),
+      city: a.string().required(),
+      state: a.string().required(),
+      startDate: a.datetime().required(),
+      endDate: a.datetime(),
+      duration: a.float(),
+      maxVolunteers: a.integer().required(),
+      currentVolunteers: a.integer().default(0),
+      spotsAvailable: a.integer(),
+      difficulty: a.string(),
+      requirements: a.string(),
+      whatToBring: a.string(),
+      whatToExpect: a.string(),
+      impact: a.string(),
+      skills: a.string().array(),
+      ageRequirement: a.string(),
+      contactInfo: a.string(),
+      icon: a.string(),
+      images: a.string().array(),
+      status: a.string().default('Draft'),
+      isRecurring: a.boolean().default(false),
+      recurrencePattern: a.string(),
+      tags: a.string().array(),
+      rating: a.float(),
+      totalHours: a.float().default(0),
+      isApproved: a.boolean().default(false),
+      approvedById: a.id(),
+      approvedAt: a.datetime(),
+      
+      // Relationships
+      organization: a.belongsTo('Organization', 'organizationId'),
+      createdBy: a.belongsTo('User', 'createdById'),
+      volunteerActivities: a.hasMany('VolunteerActivity', 'projectId'),
+    })
+    .authorization(allow => [
+      allow.authenticated().to(['read']),
+      allow.owner('createdById'),
+      allow.group('admins'),
+    ]),
+
+  /**
+   * VolunteerActivities - User participation in volunteer projects
+   */
+  VolunteerActivity: a
+    .model({
+      userId: a.id().required(),
+      projectId: a.id().required(),
+      status: a.string().required().default('Joined'),
+      hoursLogged: a.float().default(0),
+      hoursVerified: a.float().default(0),
+      joinedAt: a.datetime(),
+      startedAt: a.datetime(),
+      completedAt: a.datetime(),
+      checkInTime: a.datetime(),
+      checkOutTime: a.datetime(),
+      notes: a.string(),
+      feedback: a.string(),
+      rating: a.float(),
+      isVerified: a.boolean().default(false),
+      verifiedById: a.id(),
+      verifiedAt: a.datetime(),
+      certificateGenerated: a.boolean().default(false),
+      certificateUrl: a.string(),
+      
+      // Relationships
+      user: a.belongsTo('User', 'userId'),
+      project: a.belongsTo('Project', 'projectId'),
+    })
+    .authorization(allow => [
+      allow.owner('userId'),
+      allow.group('admins'),
+    ]),
+
+  // ============================================================================
+  // GAMIFICATION
+  // ============================================================================
+
+  /**
+   * Achievements - Achievement definitions
+   */
+  Achievement: a
+    .model({
+      name: a.string().required(),
+      description: a.string().required(),
+      icon: a.string(),
+      category: a.string(),
+      type: a.string(),
+      criteria: a.json(),
+      points: a.integer().default(0),
+      badge: a.string(),
+      isActive: a.boolean().default(true),
+      sortOrder: a.integer(),
+      
+      // Relationships
+      userAchievements: a.hasMany('UserAchievement', 'achievementId'),
+    })
+    .authorization(allow => [
+      allow.authenticated().to(['read']),
+      allow.group('admins'),
+    ]),
+
+  /**
+   * UserAchievements - User achievement progress and completion
+   */
+  UserAchievement: a
+    .model({
+      userId: a.id().required(),
+      achievementId: a.id().required(),
+      status: a.string().required().default('In Progress'),
+      progress: a.float().default(0),
+      target: a.float(),
+      completedAt: a.datetime(),
+      
+      // Relationships
+      user: a.belongsTo('User', 'userId'),
+      achievement: a.belongsTo('Achievement', 'achievementId'),
+    })
+    .authorization(allow => [
+      allow.owner('userId'),
+      allow.authenticated().to(['read']),
+      allow.group('admins'),
+    ]),
+
+  /**
+   * Leaderboards - Individual student rankings
+   */
+  Leaderboard: a
+    .model({
+      userId: a.id().required(),
+      category: a.string().required(),
+      timeframe: a.string().required(),
+      rank: a.integer(),
+      value: a.float(),
+      previousRank: a.integer(),
+      rankChange: a.integer(),
+      period: a.string(),
+      
+      // Relationships
+      user: a.belongsTo('User', 'userId'),
+    })
+    .authorization(allow => [
+      allow.authenticated().to(['read']),
+      allow.group('admins'),
+    ]),
+
+  // ============================================================================
+  // CHALLENGES AND ADMIN
+  // ============================================================================
+
+  /**
+   * WeeklyChallenges - Weekly challenges for users
+   */
+  WeeklyChallenge: a
+    .model({
+      title: a.string().required(),
+      description: a.string().required(),
+      type: a.string().required(),
+      criteria: a.json(),
+      reward: a.json(),
+      startDate: a.datetime().required(),
+      endDate: a.datetime().required(),
+      isActive: a.boolean().default(true),
+      
+      // Relationships
+      userChallenges: a.hasMany('UserChallenge', 'challengeId'),
+    })
+    .authorization(allow => [
+      allow.authenticated().to(['read']),
+      allow.group('admins'),
+    ]),
+
+  /**
+   * UserChallenges - User participation in weekly challenges
+   */
+  UserChallenge: a
+    .model({
+      userId: a.id().required(),
+      challengeId: a.id().required(),
+      status: a.string().required().default('In Progress'),
+      progress: a.float().default(0),
+      target: a.float(),
+      completedAt: a.datetime(),
+      rewardClaimed: a.boolean().default(false),
+      
+      // Relationships
+      user: a.belongsTo('User', 'userId'),
+      challenge: a.belongsTo('WeeklyChallenge', 'challengeId'),
+    })
+    .authorization(allow => [
+      allow.owner('userId'),
+      allow.authenticated().to(['read']),
+      allow.group('admins'),
+    ]),
+
+  /**
+   * AdminActivities - Administrative actions and approvals
+   */
+  AdminActivity: a
+    .model({
+      adminId: a.id().required(),
+      action: a.string().required(),
+      targetType: a.string(),
+      targetId: a.string(),
+      description: a.string(),
+      data: a.json(),
+      status: a.string(),
+      
+      // Relationships
+      admin: a.belongsTo('User', 'adminId'),
+    })
+    .authorization(allow => [
+      allow.group('admins'),
+    ]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -20,38 +335,8 @@ export const data = defineData({
   schema,
   authorizationModes: {
     defaultAuthorizationMode: 'userPool',
-    // API Key is used for a.allow.public() rules
     apiKeyAuthorizationMode: {
-      expiresInDays: 30,
+      expiresInDays: 365,
     },
   },
 });
-
-/*== STEP 2 ===============================================================
-Go to your frontend source code. From your client-side code, generate a
-Data client to make CRUDL requests to your table. (THIS SNIPPET WILL ONLY
-WORK IN THE FRONTEND CODE FILE.)
-
-Using JavaScript or Next.js React Server Components, Middleware, Server 
-Actions or Pages Router? Review how to generate Data clients for those use
-cases: https://docs.amplify.aws/gen2/build-a-backend/data/connect-to-API/
-=========================================================================*/
-
-/*
-"use client"
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-
-const client = generateClient<Schema>() // use this Data client for CRUDL requests
-*/
-
-/*== STEP 3 ===============================================================
-Fetch records from the database and use them in your frontend component.
-(THIS SNIPPET WILL ONLY WORK IN THE FRONTEND CODE FILE.)
-=========================================================================*/
-
-/* For example, in a React component, you can use this snippet in your
-  function's RETURN statement */
-// const { data: todos } = await client.models.Todo.list()
-
-// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>
