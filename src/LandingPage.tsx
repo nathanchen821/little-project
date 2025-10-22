@@ -133,7 +133,7 @@ const LandingPage: React.FC = () => {
           }}>
             Connect with local service opportunities in Blacksburg, Virginia
           </p>
-          <button style={{
+          <a href="/projects" style={{
             background: 'linear-gradient(135deg, #4CAF50, #45a049)',
             color: 'white',
             border: 'none',
@@ -141,10 +141,12 @@ const LandingPage: React.FC = () => {
             fontSize: '1.1rem',
             borderRadius: '25px',
             cursor: 'pointer',
-            transition: 'transform 0.3s'
+            transition: 'transform 0.3s',
+            textDecoration: 'none',
+            display: 'inline-block'
           }}>
             Browse Projects
-          </button>
+          </a>
         </header>
 
         {/* Featured Projects */}
@@ -188,7 +190,7 @@ const LandingPage: React.FC = () => {
                 fontWeight: 'bold',
                 transition: 'transform 0.3s'
               }}>
-                Join Project
+                Learn More
               </button>
             </div>
 
@@ -200,14 +202,14 @@ const LandingPage: React.FC = () => {
               transition: 'transform 0.3s'
             }}>
               <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>📚</div>
-              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Tutoring Elementary Students</h3>
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Elementary Tutoring</h3>
               <p style={{ color: '#666', marginBottom: '1rem' }}>Help 3rd-5th graders with reading, math homework, and study skills</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
                 <span>📅 Jan 11, 2026</span>
                 <span>⏱️ 2 hours</span>
                 <span>📍 Blacksburg Elementary School</span>
               </div>
-              <button style={{
+              <a href="/project/elementary-tutoring" style={{
                 width: '100%',
                 background: 'linear-gradient(135deg, #FFC107, #FF9800)',
                 color: 'white',
@@ -216,10 +218,13 @@ const LandingPage: React.FC = () => {
                 borderRadius: '20px',
                 cursor: 'pointer',
                 fontWeight: 'bold',
-                transition: 'transform 0.3s'
+                transition: 'transform 0.3s',
+                textDecoration: 'none',
+                display: 'block',
+                textAlign: 'center'
               }}>
-                Join Project
-              </button>
+                Learn More
+              </a>
             </div>
 
             <div style={{
@@ -248,7 +253,7 @@ const LandingPage: React.FC = () => {
                 fontWeight: 'bold',
                 transition: 'transform 0.3s'
               }}>
-                Join Project
+                Learn More
               </button>
             </div>
           </div>

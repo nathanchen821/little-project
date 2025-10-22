@@ -106,7 +106,8 @@ const ProjectsPage: React.FC = () => {
       totalSpots: 8,
       icon: "✏️",
       difficulty: "Medium",
-      requirements: "Good grades in math/reading, background check required"
+      requirements: "Good grades in math/reading, background check required",
+      detailsUrl: "/project/elementary-tutoring"
     },
     {
       id: 6,
@@ -389,24 +390,46 @@ const ProjectsPage: React.FC = () => {
                 </span>
               </div>
 
-              <button style={{
-                width: '100%',
-                background: project.spotsAvailable > 0 
-                  ? 'linear-gradient(135deg, #4CAF50, #45a049)' 
-                  : 'linear-gradient(135deg, #9E9E9E, #757575)',
-                color: 'white',
-                border: 'none',
-                padding: '0.8rem',
-                borderRadius: '20px',
-                cursor: project.spotsAvailable > 0 ? 'pointer' : 'not-allowed',
-                fontWeight: 'bold',
-                transition: 'transform 0.3s',
-                fontSize: '0.9rem'
-              }}
-              disabled={project.spotsAvailable === 0}
-            >
-              {project.spotsAvailable > 0 ? 'Join Project' : 'Full - Join Waitlist'}
-            </button>
+              {project.detailsUrl ? (
+                <a href={project.detailsUrl} style={{
+                  width: '100%',
+                  background: project.spotsAvailable > 0 
+                    ? 'linear-gradient(135deg, #4CAF50, #45a049)' 
+                    : 'linear-gradient(135deg, #9E9E9E, #757575)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.8rem',
+                  borderRadius: '20px',
+                  cursor: project.spotsAvailable > 0 ? 'pointer' : 'not-allowed',
+                  fontWeight: 'bold',
+                  transition: 'transform 0.3s',
+                  fontSize: '0.9rem',
+                  textDecoration: 'none',
+                  display: 'block',
+                  textAlign: 'center'
+                }}>
+                  {project.spotsAvailable > 0 ? 'Learn More' : 'Full - Join Waitlist'}
+                </a>
+              ) : (
+                <button style={{
+                  width: '100%',
+                  background: project.spotsAvailable > 0 
+                    ? 'linear-gradient(135deg, #4CAF50, #45a049)' 
+                    : 'linear-gradient(135deg, #9E9E9E, #757575)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.8rem',
+                  borderRadius: '20px',
+                  cursor: project.spotsAvailable > 0 ? 'pointer' : 'not-allowed',
+                  fontWeight: 'bold',
+                  transition: 'transform 0.3s',
+                  fontSize: '0.9rem'
+                }}
+                disabled={project.spotsAvailable === 0}
+              >
+                {project.spotsAvailable > 0 ? 'Learn More' : 'Full - Join Waitlist'}
+              </button>
+              )}
             </div>
           ))}
         </div>
