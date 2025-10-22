@@ -146,11 +146,12 @@ function SignInPage() {
 function Router() {
   const path = window.location.pathname;
   
-  if (path === '/app') {
+  // Handle both /app and /app/ paths
+  if (path === '/app' || path === '/app/') {
     return <SignInPage />;
   }
   
-  if (path === '/profile') {
+  if (path === '/profile' || path === '/profile/') {
     return <ProfilePage />;
   }
   
