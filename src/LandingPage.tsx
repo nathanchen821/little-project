@@ -61,8 +61,8 @@ const LandingPage: React.FC = () => {
           <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Little Project</span>
         </div>
         <div style={{ display: 'flex', gap: '2rem' }}>
-          <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>Home</a>
-          <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Projects</a>
+          <a href="/" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>Home</a>
+          <a href="/projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Projects</a>
           {isAuthenticated && (
             <>
               <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
@@ -169,43 +169,13 @@ const LandingPage: React.FC = () => {
               boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
               transition: 'transform 0.3s'
             }}>
-              <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>📚</div>
-              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Tutoring at Local Library</h3>
-              <p style={{ color: '#666', marginBottom: '1rem' }}>Help elementary students with reading and homework</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                <span>📅 Jun 15, 2025</span>
-                <span>⏱️ 2 hours</span>
-                <span>📍 Blacksburg Library</span>
-              </div>
-              <button style={{
-                width: '100%',
-                background: 'linear-gradient(135deg, #FFC107, #FF9800)',
-                color: 'white',
-                border: 'none',
-                padding: '0.8rem',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                transition: 'transform 0.3s'
-              }}>
-                Join Project
-              </button>
-            </div>
-
-            <div style={{
-              background: 'white',
-              borderRadius: '15px',
-              padding: '1.5rem',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-              transition: 'transform 0.3s'
-            }}>
               <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>🌱</div>
-              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Community Garden Cleanup</h3>
-              <p style={{ color: '#666', marginBottom: '1rem' }}>Help maintain the neighborhood community garden</p>
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Helping Seniors with Yardwork</h3>
+              <p style={{ color: '#666', marginBottom: '1rem' }}>Help elderly residents with yard maintenance, raking leaves, and light outdoor tasks</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                <span>📅 Jul 8, 2025</span>
+                <span>📅 Dec 7, 2025</span>
                 <span>⏱️ 3 hours</span>
-                <span>📍 Blacksburg Municipal Park</span>
+                <span>📍 Blacksburg Senior Center</span>
               </div>
               <button style={{
                 width: '100%',
@@ -229,13 +199,43 @@ const LandingPage: React.FC = () => {
               boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
               transition: 'transform 0.3s'
             }}>
-              <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>🎓</div>
-              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Youth Tutoring</h3>
-              <p style={{ color: '#666', marginBottom: '1rem' }}>Help middle and high school students with homework and study skills</p>
+              <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>📚</div>
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Tutoring Elementary Students</h3>
+              <p style={{ color: '#666', marginBottom: '1rem' }}>Help 3rd-5th graders with reading, math homework, and study skills</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                <span>📅 Jan 11, 2026</span>
+                <span>⏱️ 2 hours</span>
+                <span>📍 Blacksburg Elementary School</span>
+              </div>
+              <button style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #FFC107, #FF9800)',
+                color: 'white',
+                border: 'none',
+                padding: '0.8rem',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'transform 0.3s'
+              }}>
+                Join Project
+              </button>
+            </div>
+
+            <div style={{
+              background: 'white',
+              borderRadius: '15px',
+              padding: '1.5rem',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+              transition: 'transform 0.3s'
+            }}>
+              <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>📦</div>
+              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Shelter Care Packing</h3>
+              <p style={{ color: '#666', marginBottom: '1rem' }}>Create essential care packages with toiletries, snacks, and comfort items for families in need</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
                 <span>📅 Aug 12, 2025</span>
                 <span>⏱️ 4 hours</span>
-                <span>📍 Blacksburg Community Center</span>
+                <span>📍 St. Michael Lutheran Church</span>
               </div>
               <button style={{
                 width: '100%',

@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { Authenticator } from '@aws-amplify/ui-react';
 import LandingPage from "./LandingPage.tsx";
 import ProfilePage from "./ProfilePage.tsx";
+import ProjectsPage from "./ProjectsPage.tsx";
 import "./index.css";
 import '@aws-amplify/ui-react/styles.css';
 import { Amplify } from "aws-amplify";
@@ -153,6 +154,10 @@ function Router() {
   
   if (path === '/profile' || path === '/profile/') {
     return <ProfilePage />;
+  }
+  
+  if (path === '/projects' || path === '/projects/') {
+    return <ProjectsPage />;
   }
   
   // Default to landing page for all other paths
