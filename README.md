@@ -1,10 +1,10 @@
-## AWS Amplify React+Vite Starter Template
+## Little Project React+Vite Starter Template
 
-This repository provides a starter template for creating applications using React+Vite and AWS Amplify, emphasizing easy setup for authentication, API, and database capabilities.
+This repository provides a starter template for creating applications using React+Vite and Little Project, emphasizing easy setup for authentication, API, and database capabilities.
 
 ## Overview
 
-This template equips you with a foundational React application integrated with AWS Amplify, streamlined for scalability and performance. It is ideal for developers looking to jumpstart their project with pre-configured AWS services like Cognito, AppSync, and DynamoDB.
+This template equips you with a foundational React application integrated with Little Project, streamlined for scalability and performance. It is ideal for developers looking to jumpstart their project with pre-configured AWS services like Cognito, AppSync, and DynamoDB.
 
 ## Features
 

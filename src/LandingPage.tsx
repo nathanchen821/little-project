@@ -1,15 +1,33 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
 
 const LandingPage: React.FC = () => {
-  // Check if user is authenticated by looking at the URL
-  const isAuthenticated = window.location.pathname === '/app';
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  useEffect(() => {
+    checkAuthState();
+  }, []);
+  
+  const checkAuthState = async () => {
+    try {
+      await getCurrentUser();
+      setIsAuthenticated(true);
+    } catch (error) {
+      setIsAuthenticated(false);
+    }
+  };
   
   const handleSignInClick = () => {
     window.location.href = '/app';
   };
 
-  const handleSignOutClick = () => {
-    window.location.href = '/';
+  const handleSignOutClick = async () => {
+    try {
+      await amplifySignOut();
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return (
@@ -48,7 +66,6 @@ const LandingPage: React.FC = () => {
           {isAuthenticated && (
             <>
               <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
-              <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Impact</a>
               <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Profile</a>
             </>
           )}
@@ -285,7 +302,7 @@ const LandingPage: React.FC = () => {
         padding: '2rem',
         marginTop: '3rem'
       }}>
-        <p>&copy; 2024 Little Project. Making a difference, one small act at a time.</p>
+        <p>&copy; 2025 Little Project. Making a difference, one small act at a time.</p>
       </footer>
     </div>
   );
