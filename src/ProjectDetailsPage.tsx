@@ -39,7 +39,7 @@ const ProjectDetailsPage: React.FC = () => {
       window.location.href = '/app';
     } else {
       // In a real app, this would handle joining the project
-      alert('Project joined! You will receive confirmation details via email.');
+      alert('Project joined! Check your My Projects page for details.');
     }
   };
 

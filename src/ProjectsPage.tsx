@@ -212,7 +212,7 @@ const ProjectsPage: React.FC = () => {
           <a href="/projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>Projects</a>
           {isAuthenticated && (
             <>
-              <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
+              <a href="/my-projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
               <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Achievement</a>
               <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Leaderboard</a>
             </>
@@ -267,13 +267,61 @@ const ProjectsPage: React.FC = () => {
           borderRadius: '15px',
           marginBottom: '2rem'
         }}>
-          <h1 style={{
-            fontSize: '2.5rem',
-            marginBottom: '1rem',
-            color: '#2E7D32'
+          <div style={{
+            position: 'relative',
+            marginBottom: '1rem'
           }}>
-            Volunteer Projects
-          </h1>
+            <h1 style={{
+              fontSize: '2.5rem',
+              margin: '0',
+              color: '#2E7D32',
+              textAlign: 'center'
+            }}>
+              Volunteer Projects
+            </h1>
+            <button
+              onClick={() => alert('Submit New Project feature coming soon!')}
+              style={{
+                position: 'absolute',
+                right: '2rem',
+                top: '25%',
+                transform: 'translateY(-50%)',
+                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                color: 'white',
+                border: 'none',
+                padding: '0.5rem 0.5rem',
+                borderRadius: '25px',
+                cursor: 'pointer',
+                fontSize: '1.5rem',
+                fontWeight: '600',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '3rem',
+                height: '3rem',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.width = '16rem';
+                e.currentTarget.style.padding = '0.5rem 1rem';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                e.currentTarget.innerHTML = 'Submit New Project';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.width = '3rem';
+                e.currentTarget.style.padding = '0.5rem 0.5rem';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                e.currentTarget.innerHTML = '+';
+              }}
+            >
+              +
+            </button>
+          </div>
           <p style={{
             fontSize: '1.2rem',
             marginBottom: '0',
