@@ -149,8 +149,7 @@ const schema = a.schema({
       volunteerActivities: a.hasMany('VolunteerActivity', 'projectId'),
     })
     .authorization(allow => [
-      allow.authenticated().to(['read']),
-      allow.authenticated().to(['create', 'update', 'delete']),
+      allow.authenticated(),
       allow.group('admins'),
     ]),
 
@@ -232,8 +231,7 @@ const schema = a.schema({
       achievement: a.belongsTo('Achievement', 'achievementId'),
     })
     .authorization(allow => [
-      allow.authenticated().to(['read']),
-      allow.authenticated().to(['create', 'update', 'delete']),
+      allow.authenticated(),
       allow.group('admins'),
     ]),
 
@@ -303,8 +301,7 @@ const schema = a.schema({
       challenge: a.belongsTo('WeeklyChallenge', 'challengeId'),
     })
     .authorization(allow => [
-      allow.authenticated().to(['read']),
-      allow.authenticated().to(['create', 'update', 'delete']),
+      allow.authenticated(),
       allow.group('admins'),
     ]),
 
