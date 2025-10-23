@@ -9,6 +9,7 @@ import ProjectSubmissionPage from "./ProjectSubmissionPage.tsx";
 import ProjectDetailsPage from "./ProjectDetailsPage.tsx";
 import LeaderboardPage from "./LeaderboardPage.tsx";
 import MyProjectsPage from "./MyProjectsPage.tsx";
+import AdminDashboard from "./AdminDashboard.tsx";
 import "./index.css";
 import '@aws-amplify/ui-react/styles.css';
 import { Amplify } from "aws-amplify";
@@ -183,6 +184,10 @@ function Router() {
   
   if (path === '/my-projects' || path === '/my-projects/') {
     return <MyProjectsPage />;
+  }
+  
+  if (path === '/admin' || path === '/admin/') {
+    return <AdminDashboard />;
   }
   
   // Default to landing page for all other paths

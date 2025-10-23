@@ -27,6 +27,7 @@ interface Project {
 
 const MyProjectsPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [mySubmissions, setMySubmissions] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -55,6 +56,11 @@ const MyProjectsPage: React.FC = () => {
         console.error('No user profile found');
         setLoading(false);
         return;
+      }
+      
+      // Check if user is admin
+      if (userProfile.isAdmin) {
+        setIsAdmin(true);
       }
       
       // Query projects where createdById === current user's id
@@ -217,6 +223,11 @@ const MyProjectsPage: React.FC = () => {
               <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>My Projects</a>
               <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Achievement</a>
               <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Leaderboard</a>
+              {isAdmin && (
+                <a href="/admin" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
+                  ⚙️ Admin
+                </a>
+              )}
             </>
           )}
           {isAuthenticated ? (

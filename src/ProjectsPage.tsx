@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../amplify/data/resource';
+import { getOrCreateUserProfile } from './utils/userProfile';
 
 const client = generateClient<Schema>();
 
 const ProjectsPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [filter, setFilter] = useState('all');
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +22,16 @@ const ProjectsPage: React.FC = () => {
     try {
       await getCurrentUser();
       setIsAuthenticated(true);
+      
+      // Check if user is admin
+      try {
+        const userProfile = await getOrCreateUserProfile();
+        if (userProfile?.isAdmin) {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
     } catch (error) {
       setIsAuthenticated(false);
     }
@@ -124,6 +136,11 @@ const ProjectsPage: React.FC = () => {
               <a href="/my-projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
               <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Achievement</a>
               <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Leaderboard</a>
+              {isAdmin && (
+                <a href="/admin" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
+                  ⚙️ Admin
+                </a>
+              )}
             </>
           )}
           {isAuthenticated ? (

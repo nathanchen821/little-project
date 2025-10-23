@@ -142,6 +142,7 @@ const schema = a.schema({
       isApproved: a.boolean().default(false),
       approvedById: a.id(),
       approvedAt: a.datetime(),
+      rejectionReason: a.string(),
       
       // Relationships
       organization: a.belongsTo('Organization', 'organizationId'),
