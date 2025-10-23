@@ -5,6 +5,7 @@ import LandingPage from "./LandingPage.tsx";
 import ProfilePage from "./ProfilePage.tsx";
 import CompleteProfilePage from "./CompleteProfilePage.tsx";
 import ProjectsPage from "./ProjectsPage.tsx";
+import ProjectSubmissionPage from "./ProjectSubmissionPage.tsx";
 import ProjectDetailsPage from "./ProjectDetailsPage.tsx";
 import LeaderboardPage from "./LeaderboardPage.tsx";
 import MyProjectsPage from "./MyProjectsPage.tsx";
@@ -166,6 +167,10 @@ function Router() {
   
   if (path === '/projects' || path === '/projects/') {
     return <ProjectsPage />;
+  }
+  
+  if (path === '/submit-project' || path === '/submit-project/') {
+    return <ProjectSubmissionPage />;
   }
   
   if (path === '/project/elementary-tutoring' || path === '/project/elementary-tutoring/') {

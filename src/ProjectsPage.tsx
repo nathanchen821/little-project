@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../amplify/data/resource';
+
+const client = generateClient<Schema>();
 
 const ProjectsPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     checkAuthState();
+    loadProjects();
   }, []);
   
   const checkAuthState = async () => {
@@ -15,6 +22,25 @@ const ProjectsPage: React.FC = () => {
       setIsAuthenticated(true);
     } catch (error) {
       setIsAuthenticated(false);
+    }
+  };
+
+  const loadProjects = async () => {
+    try {
+      // Query only Active and Approved projects
+      const { data } = await client.models.Project.list({
+        filter: {
+          status: { eq: 'Active' },
+          isApproved: { eq: true }
+        }
+      });
+      
+      setProjects(data || []);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      setProjects([]);
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -31,151 +57,34 @@ const ProjectsPage: React.FC = () => {
     }
   };
 
-  // Mock projects data for high school students in Blacksburg/Christiansburg area
-  const projects = [
-    {
-      id: 1,
-      title: "Senior Yard Work Help",
-      description: "Help elderly residents with yard maintenance, raking leaves, and light outdoor tasks",
-      category: "Community Service",
-      location: "Blacksburg Senior Center",
-      date: "Dec 7, 2025",
-      time: "9:00 AM - 12:00 PM",
-      duration: "3 hours",
-      spotsAvailable: 8,
-      totalSpots: 12,
-      icon: "🌱",
-      difficulty: "Easy",
-      requirements: "Comfortable clothes, work gloves provided"
-    },
-    {
-      id: 2,
-      title: "Tech Setup for Seniors",
-      description: "Help seniors set up smartphones, tablets, and basic computer tasks",
-      category: "Technology",
-      location: "Christiansburg Library",
-      date: "Dec 14, 2025",
-      time: "1:00 PM - 4:00 PM",
-      duration: "3 hours",
-      spotsAvailable: 6,
-      totalSpots: 10,
-      icon: "📱",
-      difficulty: "Easy",
-      requirements: "Basic tech knowledge, patience"
-    },
-    {
-      id: 3,
-      title: "School Supply Drive",
-      description: "Organize and collect school supplies for local elementary schools",
-      category: "Education",
-      location: "Blacksburg High School",
-      date: "Dec 21, 2025",
-      time: "10:00 AM - 2:00 PM",
-      duration: "4 hours",
-      spotsAvailable: 15,
-      totalSpots: 20,
-      icon: "📚",
-      difficulty: "Easy",
-      requirements: "Organizational skills, friendly personality"
-    },
-    {
-      id: 4,
-      title: "Winter Clothing Drive",
-      description: "Collect and sort winter coats, hats, and gloves for families in need",
-      category: "Community Service",
-      location: "Christiansburg Community Center",
-      date: "Jan 4, 2026",
-      time: "9:00 AM - 1:00 PM",
-      duration: "4 hours",
-      spotsAvailable: 12,
-      totalSpots: 15,
-      icon: "🧥",
-      difficulty: "Easy",
-      requirements: "Sorting skills, ability to lift boxes"
-    },
-    {
-      id: 5,
-      title: "Elementary Tutoring",
-      description: "Help 3rd-5th graders with reading, math homework, and study skills",
-      category: "Education",
-      location: "Blacksburg Elementary School",
-      date: "Jan 11, 2026",
-      time: "3:30 PM - 5:30 PM",
-      duration: "2 hours",
-      spotsAvailable: 5,
-      totalSpots: 8,
-      icon: "✏️",
-      difficulty: "Medium",
-      requirements: "Good grades in math/reading, background check required",
-      detailsUrl: "/project/elementary-tutoring"
-    },
-    {
-      id: 6,
-      title: "Shelter Care Packing",
-      description: "Create essential care packages with toiletries, snacks, and comfort items for families in need",
-      category: "Community Service",
-      location: "St. Michael Lutheran Church",
-      date: "Jan 18, 2026",
-      time: "10:00 AM - 2:00 PM",
-      duration: "4 hours",
-      spotsAvailable: 8,
-      totalSpots: 12,
-      icon: "📦",
-      difficulty: "Easy",
-      requirements: "None, all materials provided"
-    },
-    {
-      id: 7,
-      title: "Park Cleanup Day",
-      description: "Help clean up local parks, remove litter, and maintain trails",
-      category: "Environment",
-      location: "Heritage Park, Christiansburg",
-      date: "Jan 25, 2026",
-      time: "9:00 AM - 12:00 PM",
-      duration: "3 hours",
-      spotsAvailable: 20,
-      totalSpots: 25,
-      icon: "🌳",
-      difficulty: "Easy",
-      requirements: "Comfortable clothes, work gloves provided"
-    },
-    {
-      id: 8,
-      title: "Community Center Cleanup",
-      description: "Deep clean and organize community spaces for local events",
-      category: "Community Service",
-      location: "Blacksburg Community Center",
-      date: "Feb 1, 2026",
-      time: "1:00 PM - 4:00 PM",
-      duration: "3 hours",
-      spotsAvailable: 10,
-      totalSpots: 15,
-      icon: "🧹",
-      difficulty: "Easy",
-      requirements: "Cleaning supplies provided"
-    },
-    {
-      id: 9,
-      title: "Logging Internship",
-      description: "Learn sustainable forestry practices and help with tree inventory in local forests",
-      category: "Environment",
-      location: "Jefferson National Forest",
-      date: "Feb 8, 2026",
-      time: "8:00 AM - 3:00 PM",
-      duration: "7 hours",
-      spotsAvailable: 3,
-      totalSpots: 5,
-      icon: "🌲",
-      difficulty: "Hard",
-      requirements: "Physical fitness, outdoor experience preferred"
-    }
-  ];
-
-  const categories = ['all', 'Community Service', 'Education', 'Technology', 'Environment'];
-
+  // Filter projects by category
   const filteredProjects = filter === 'all' 
     ? projects 
-    : projects.filter(project => project.category === filter);
+    : projects.filter(p => p.category.toLowerCase().includes(filter.toLowerCase()));
+
+  // Format date for display
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return 'TBD';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  // Get category icon
+  const getCategoryIcon = (category: string) => {
+    if (category.includes('Education')) return '📚';
+    if (category.includes('Community')) return '🤝';
+    if (category.includes('Technology')) return '💻';
+    if (category.includes('Environment')) return '🌳';
+    if (category.includes('Healthcare')) return '🏥';
+    if (category.includes('Animal')) return '🐾';
+    if (category.includes('Senior')) return '👴';
+    if (category.includes('Arts')) return '🎨';
+    if (category.includes('Food')) return '🍽️';
+    if (category.includes('Sports')) return '🏃';
+    return '🌱';
+  };
+
+  const categories = ['all', 'Community Service', 'Education', 'Technology', 'Environment'];
 
   return (
     <div style={{ 
@@ -280,7 +189,7 @@ const ProjectsPage: React.FC = () => {
               Volunteer Projects
             </h1>
             <button
-              onClick={() => alert('Submit New Project feature coming soon!')}
+              onClick={() => window.location.href = '/submit-project'}
               style={{
                 position: 'absolute',
                 right: '2rem',
@@ -368,119 +277,109 @@ const ProjectsPage: React.FC = () => {
           gap: '2rem',
           marginBottom: '3rem'
         }}>
-          {filteredProjects.map(project => (
-            <div key={project.id} style={{
-              background: 'white',
-              borderRadius: '15px',
-              padding: '1.5rem',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-              transition: 'transform 0.3s',
-              border: '1px solid #e2e8f0'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{ fontSize: '2.5rem' }}>{project.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
-                    {project.title}
-                  </h3>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '3rem', gridColumn: '1 / -1' }}>
+              <div style={{ fontSize: '1.5rem', color: '#666' }}>Loading projects...</div>
+            </div>
+          ) : filteredProjects.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem', gridColumn: '1 / -1' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+              <h3 style={{ fontSize: '1.5rem', color: '#666', marginBottom: '0.5rem' }}>No projects available</h3>
+              <p style={{ color: '#999' }}>
+                {filter === 'all' 
+                  ? 'No projects have been approved yet. Check back soon!' 
+                  : `No ${filter} projects available at the moment.`}
+              </p>
+            </div>
+          ) : (
+            filteredProjects.map(project => (
+              <div key={project.id} style={{
+                background: 'white',
+                borderRadius: '15px',
+                padding: '1.5rem',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                transition: 'transform 0.3s',
+                border: '1px solid #e2e8f0'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '2.5rem' }}>{getCategoryIcon(project.category || '')}</div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
+                      {project.title}
+                    </h3>
+                    <span style={{
+                      background: '#E8F5E8',
+                      color: '#2E7D32',
+                      padding: '0.3rem 0.8rem',
+                      borderRadius: '15px',
+                      fontSize: '0.8rem',
+                      fontWeight: 'bold'
+                    }}>
+                      {project.category}
+                    </span>
+                  </div>
+                </div>
+                
+                <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.95rem' }}>
+                  {project.description}
+                </p>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>📅</span>
+                    <span>{formatDate(project.startDate)}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>📍</span>
+                    <span>{project.location}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>⏱️</span>
+                    <span>{project.duration} hours</span>
+                </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>👥</span>
+                    <span>{project.spotsAvailable} spots available ({project.currentVolunteers}/{project.maxVolunteers} filled)</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <span style={{
-                    background: '#E8F5E8',
-                    color: '#2E7D32',
+                    background: project.difficulty === 'Easy' ? '#E8F5E8' : project.difficulty === 'Medium' ? '#FFF3E0' : '#FFEBEE',
+                    color: project.difficulty === 'Easy' ? '#2E7D32' : project.difficulty === 'Medium' ? '#F57C00' : '#D32F2F',
                     padding: '0.3rem 0.8rem',
                     borderRadius: '15px',
                     fontSize: '0.8rem',
                     fontWeight: 'bold'
                   }}>
-                    {project.category}
+                    {project.difficulty}
+                  </span>
+                  <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                    {project.requirements}
                   </span>
                 </div>
-              </div>
-              
-              <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.95rem' }}>
-                {project.description}
-              </p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span>📅</span>
-                  <span>{project.date}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span>⏰</span>
-                  <span>{project.time}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span>📍</span>
-                  <span>{project.location}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span>⏱️</span>
-                  <span>{project.duration}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span>👥</span>
-                  <span>{project.spotsAvailable} spots available ({project.totalSpots - project.spotsAvailable}/{project.totalSpots} filled)</span>
-                </div>
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <span style={{
-                  background: project.difficulty === 'Easy' ? '#E8F5E8' : project.difficulty === 'Medium' ? '#FFF3E0' : '#FFEBEE',
-                  color: project.difficulty === 'Easy' ? '#2E7D32' : project.difficulty === 'Medium' ? '#F57C00' : '#D32F2F',
-                  padding: '0.3rem 0.8rem',
-                  borderRadius: '15px',
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold'
-                }}>
-                  {project.difficulty}
-                </span>
-                <span style={{ fontSize: '0.9rem', color: '#666' }}>
-                  {project.requirements}
-                </span>
-              </div>
-
-              {project.detailsUrl ? (
-                <a href={project.detailsUrl} style={{
-                  width: '100%',
-                  background: project.spotsAvailable > 0 
-                    ? 'linear-gradient(135deg, #4CAF50, #45a049)' 
-                    : 'linear-gradient(135deg, #9E9E9E, #757575)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.8rem',
-                  borderRadius: '20px',
-                  cursor: project.spotsAvailable > 0 ? 'pointer' : 'not-allowed',
-                  fontWeight: 'bold',
-                  transition: 'transform 0.3s',
-                  fontSize: '0.9rem',
-                  textDecoration: 'none',
-                  display: 'block',
-                  textAlign: 'center'
-                }}>
-                  {project.spotsAvailable > 0 ? 'Learn More' : 'Full - Join Waitlist'}
-                </a>
-              ) : (
                 <button style={{
                   width: '100%',
-                  background: project.spotsAvailable > 0 
+                  background: project.spotsAvailable && project.spotsAvailable > 0 
                     ? 'linear-gradient(135deg, #4CAF50, #45a049)' 
                     : 'linear-gradient(135deg, #9E9E9E, #757575)',
                   color: 'white',
                   border: 'none',
                   padding: '0.8rem',
                   borderRadius: '20px',
-                  cursor: project.spotsAvailable > 0 ? 'pointer' : 'not-allowed',
+                  cursor: project.spotsAvailable && project.spotsAvailable > 0 ? 'pointer' : 'not-allowed',
                   fontWeight: 'bold',
                   transition: 'transform 0.3s',
                   fontSize: '0.9rem'
                 }}
-                disabled={project.spotsAvailable === 0}
-              >
-                {project.spotsAvailable > 0 ? 'Learn More' : 'Full - Join Waitlist'}
-              </button>
-              )}
-            </div>
-          ))}
+                disabled={!project.spotsAvailable || project.spotsAvailable === 0}
+                >
+                  {project.spotsAvailable && project.spotsAvailable > 0 ? 'Learn More' : 'Full - Join Waitlist'}
+                </button>
+              </div>
+            ))
+          )}
         </div>
 
       </main>
