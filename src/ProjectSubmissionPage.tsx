@@ -11,6 +11,8 @@ const ProjectSubmissionPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -37,7 +39,68 @@ const ProjectSubmissionPage: React.FC = () => {
 
   useEffect(() => {
     loadUserProfile();
+    checkEditMode();
   }, []);
+
+  const checkEditMode = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('edit');
+    if (editId) {
+      setEditMode(true);
+      setProjectId(editId);
+      loadProjectData(editId);
+    }
+  };
+
+  const loadProjectData = async (id: string) => {
+    try {
+      const { data: project, errors } = await client.models.Project.get({ id });
+      
+      if (errors || !project) {
+        console.error('Error loading project:', errors);
+        setNotification({
+          type: 'error',
+          message: 'Failed to load project data. Redirecting...'
+        });
+        setTimeout(() => window.location.href = '/my-projects', 2000);
+        return;
+      }
+
+      // Convert ISO date to YYYY-MM-DD format for date input
+      const startDateFormatted = project.startDate ? project.startDate.split('T')[0] : '';
+      const endDateFormatted = project.endDate ? project.endDate.split('T')[0] : '';
+
+      // Pre-fill form with existing data
+      setFormData({
+        title: project.title || '',
+        description: project.description || '',
+        category: project.category || '',
+        location: project.location || '',
+        address: project.address || '',
+        city: project.city || '',
+        state: project.state || 'Virginia',
+        startDate: startDateFormatted,
+        endDate: endDateFormatted,
+        duration: project.duration?.toString() || '',
+        maxVolunteers: project.maxVolunteers?.toString() || '',
+        difficulty: project.difficulty || 'Easy',
+        requirements: project.requirements || '',
+        whatToBring: project.whatToBring || '',
+        whatToExpect: project.whatToExpect || '',
+        impact: project.impact || '',
+        skills: project.skills ? project.skills.filter((s): s is string => s !== null) : [],
+        ageRequirement: project.ageRequirement || '13+',
+        contactInfo: project.contactInfo || '',
+        images: project.images && project.images.length > 0 ? project.images.filter((img): img is string => img !== null) : ['']
+      });
+    } catch (error) {
+      console.error('Error loading project:', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to load project data.'
+      });
+    }
+  };
 
   const loadUserProfile = async () => {
     try {
@@ -153,30 +216,66 @@ const ProjectSubmissionPage: React.FC = () => {
       const imageUrl = formData.images[0]?.trim();
       if (imageUrl) projectData.images = [imageUrl];
 
-      console.log('Creating project with data:', projectData);
-      
-      // Create project with Pending status
-      const { errors: createErrors } = await client.models.Project.create(projectData);
+      if (editMode && projectId) {
+        // Update existing project
+        console.log('Updating project with data:', projectData);
+        
+        const updateData: any = {
+          id: projectId,
+          ...projectData
+        };
+        
+        // Don't update createdById or initial counters when editing
+        delete updateData.createdById;
+        delete updateData.currentVolunteers;
+        delete updateData.spotsAvailable;
 
-      if (createErrors) {
-        console.error('Error creating project:', createErrors);
-        console.error('Error details:', JSON.stringify(createErrors, null, 2));
+        const { errors: updateErrors } = await client.models.Project.update(updateData);
+
+        if (updateErrors) {
+          console.error('Error updating project:', updateErrors);
+          setNotification({
+            type: 'error',
+            message: `Failed to update project: ${updateErrors[0]?.message || 'Unknown error'}. Please try again.`
+          });
+          return;
+        }
+
         setNotification({
-          type: 'error',
-          message: `Failed to submit project: ${createErrors[0]?.message || 'Unknown error'}. Please try again.`
+          type: 'success',
+          message: 'Project updated successfully!'
         });
-        return;
-      }
+        
+        // Redirect to my projects page
+        setTimeout(() => {
+          window.location.href = '/my-projects';
+        }, 2000);
+      } else {
+        // Create new project
+        console.log('Creating project with data:', projectData);
+        
+        const { errors: createErrors } = await client.models.Project.create(projectData);
 
-      setNotification({
-        type: 'success',
-        message: 'Project submitted successfully! It will be visible after admin approval.'
-      });
-      
-      // Redirect after showing success message
-      setTimeout(() => {
-        window.location.href = '/projects';
-      }, 2000);
+        if (createErrors) {
+          console.error('Error creating project:', createErrors);
+          console.error('Error details:', JSON.stringify(createErrors, null, 2));
+          setNotification({
+            type: 'error',
+            message: `Failed to submit project: ${createErrors[0]?.message || 'Unknown error'}. Please try again.`
+          });
+          return;
+        }
+
+        setNotification({
+          type: 'success',
+          message: 'Project submitted successfully! It will be visible after admin approval.'
+        });
+        
+        // Redirect after showing success message
+        setTimeout(() => {
+          window.location.href = '/my-projects';
+        }, 2000);
+      }
     } catch (error) {
       console.error('Error submitting project:', error);
       setNotification({
@@ -332,10 +431,13 @@ const ProjectSubmissionPage: React.FC = () => {
           {/* Header */}
           <div style={{ marginBottom: '2rem' }}>
             <h1 style={{ fontSize: '2.5rem', color: '#2E7D32', marginBottom: '0.5rem' }}>
-              Submit a Project
+              {editMode ? 'Edit Project' : 'Submit a Project'}
             </h1>
             <p style={{ color: '#666', fontSize: '1.1rem' }}>
-              Create a new volunteer opportunity for students in your community
+              {editMode 
+                ? 'Update your volunteer project details below'
+                : 'Create a new volunteer opportunity for students in your community'
+              }
             </p>
             <div style={{
               background: '#FFF3CD',
@@ -851,11 +953,14 @@ const ProjectSubmissionPage: React.FC = () => {
                   transition: 'all 0.3s'
                 }}
               >
-                {submitting ? 'Submitting...' : '📤 Submit Project for Review'}
+                {submitting 
+                  ? (editMode ? 'Updating...' : 'Submitting...') 
+                  : (editMode ? '✏️ Update Project' : '📤 Submit Project for Review')
+                }
               </button>
               <button
                 type="button"
-                onClick={() => window.location.href = '/projects'}
+                onClick={() => window.location.href = editMode ? '/my-projects' : '/projects'}
                 style={{
                   padding: '1rem 2rem',
                   background: 'white',
