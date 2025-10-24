@@ -588,6 +588,7 @@ const MyProjectsPage: React.FC = () => {
               )}
             </>
           )}
+          <a href="/faq" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>FAQ</a>
           {isAuthenticated ? (
             <button
               onClick={handleSignOutClick}

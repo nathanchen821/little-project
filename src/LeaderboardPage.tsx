@@ -151,6 +151,7 @@ const LeaderboardPage: React.FC = () => {
             </>
           )}
           <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>Leaderboard</a>
+          <a href="/faq" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>FAQ</a>
           {user ? (
             <button
               onClick={handleSignOutClick}
