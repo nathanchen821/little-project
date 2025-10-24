@@ -150,6 +150,9 @@ const schema = a.schema({
       volunteerActivities: a.hasMany('VolunteerActivity', 'projectId'),
     })
     .authorization(allow => [
+      // Allow public read access for approved projects
+      allow.publicApiKey().to(['read']),
+      // Allow authenticated users full access
       allow.authenticated(),
       allow.group('admins'),
     ]),
