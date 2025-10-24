@@ -30,9 +30,13 @@ const MyProjectsPage: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [mySubmissions, setMySubmissions] = useState<Project[]>([]);
   const [myJoinedProjects, setMyJoinedProjects] = useState<Project[]>([]);
+  const [volunteerActivities, setVolunteerActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'submitted' | 'joined'>('joined');
   const [unjoinLoading, setUnjoinLoading] = useState<string | null>(null);
+  const [completingProject, setCompletingProject] = useState<string | null>(null);
+  const [loggingHours, setLoggingHours] = useState<string | null>(null);
+  const [hoursInput, setHoursInput] = useState<{[key: string]: string}>({});
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
   
   useEffect(() => {
@@ -110,8 +114,12 @@ const MyProjectsPage: React.FC = () => {
       
       if (!volunteerActivities || volunteerActivities.length === 0) {
         setMyJoinedProjects([]);
+        setVolunteerActivities([]);
         return;
       }
+      
+      // Store volunteer activities for later use
+      setVolunteerActivities(volunteerActivities);
       
       // Get project IDs from volunteer activities
       const projectIds = volunteerActivities.map(activity => activity.projectId);
@@ -145,6 +153,230 @@ const MyProjectsPage: React.FC = () => {
       setIsAuthenticated(false);
     } catch (error) {
       console.error('Error signing out:', error);
+    }
+  };
+
+  const handleCompleteProject = async (projectId: string) => {
+    setCompletingProject(projectId);
+    setNotification(null);
+
+    try {
+      // Get current user profile
+      const { getOrCreateUserProfile } = await import('./utils/userProfile');
+      const userProfile = await getOrCreateUserProfile();
+      
+      if (!userProfile) {
+        setNotification({ type: 'error', message: 'User profile not found. Please try again.' });
+        return;
+      }
+
+      // Find the volunteer activity for this project
+      const activity = volunteerActivities.find(va => va.projectId === projectId && va.userId === userProfile.id);
+      if (!activity) {
+        setNotification({ type: 'error', message: 'Volunteer activity not found.' });
+        return;
+      }
+
+      // Update the volunteer activity to completed
+      const { errors } = await client.models.VolunteerActivity.update({
+        id: activity.id,
+        status: 'Completed',
+        completedAt: new Date().toISOString()
+      });
+
+      if (errors) {
+        console.error('Error completing project:', errors);
+        setNotification({ type: 'error', message: 'Failed to complete project. Please try again.' });
+        return;
+      }
+
+      // Update user statistics
+      await updateUserStats(userProfile.id);
+
+      setNotification({ type: 'success', message: 'Project completed successfully! Your hours have been recorded.' });
+      
+      // Reload joined projects to reflect changes
+      await loadJoinedProjects(userProfile.id);
+      
+    } catch (error) {
+      console.error('Error completing project:', error);
+      setNotification({ type: 'error', message: 'Failed to complete project. Please try again.' });
+    } finally {
+      setCompletingProject(null);
+    }
+  };
+
+  const handleLogHours = async (projectId: string) => {
+    setLoggingHours(projectId);
+    setNotification(null);
+
+    try {
+      const hours = parseFloat(hoursInput[projectId]);
+      if (isNaN(hours) || hours <= 0) {
+        setNotification({ type: 'error', message: 'Please enter a valid number of hours.' });
+        return;
+      }
+
+      // Get current user profile
+      const { getOrCreateUserProfile } = await import('./utils/userProfile');
+      const userProfile = await getOrCreateUserProfile();
+      
+      if (!userProfile) {
+        setNotification({ type: 'error', message: 'User profile not found. Please try again.' });
+        return;
+      }
+
+      // Find the volunteer activity for this project
+      const activity = volunteerActivities.find(va => va.projectId === projectId && va.userId === userProfile.id);
+      if (!activity) {
+        setNotification({ type: 'error', message: 'Volunteer activity not found.' });
+        return;
+      }
+
+      // Find the project to get its duration
+      const project = myJoinedProjects.find(p => p.id === projectId);
+      if (!project) {
+        setNotification({ type: 'error', message: 'Project not found.' });
+        return;
+      }
+
+      // Check if project has a duration limit
+      const currentHoursLogged = activity.hoursLogged || 0;
+      const newTotalHours = currentHoursLogged + hours;
+      
+      if (project.duration && newTotalHours > project.duration) {
+        const remainingHours = project.duration - currentHoursLogged;
+        if (remainingHours <= 0) {
+          setNotification({ type: 'error', message: `You have already logged the maximum ${project.duration} hours for this project.` });
+        } else {
+          setNotification({ type: 'error', message: `You can only log ${remainingHours.toFixed(1)} more hours (project duration: ${project.duration} hours).` });
+        }
+        return;
+      }
+
+      // Update the volunteer activity with logged hours
+      const newHoursLogged = currentHoursLogged + hours;
+      const { errors } = await client.models.VolunteerActivity.update({
+        id: activity.id,
+        hoursLogged: newHoursLogged,
+        status: newHoursLogged > 0 ? 'Active' : 'Joined'
+      });
+
+      if (errors) {
+        console.error('Error logging hours:', errors);
+        setNotification({ type: 'error', message: 'Failed to log hours. Please try again.' });
+        return;
+      }
+
+      // Update user statistics
+      await updateUserStats(userProfile.id);
+
+      const successMessage = project.duration 
+        ? `${hours} hours logged successfully! Total: ${newHoursLogged}/${project.duration} hours.`
+        : `${hours} hours logged successfully! Total: ${newHoursLogged} hours.`;
+      
+      setNotification({ type: 'success', message: successMessage });
+      
+      // Clear the input
+      setHoursInput({ ...hoursInput, [projectId]: '' });
+      
+      // Reload joined projects to reflect changes
+      await loadJoinedProjects(userProfile.id);
+      
+    } catch (error) {
+      console.error('Error logging hours:', error);
+      setNotification({ type: 'error', message: 'Failed to log hours. Please try again.' });
+    } finally {
+      setLoggingHours(null);
+    }
+  };
+
+  const updateUserStats = async (userId: string) => {
+    try {
+      // Get all volunteer activities for this user
+      const { data: activities } = await client.models.VolunteerActivity.list({
+        filter: { userId: { eq: userId } }
+      });
+
+      if (!activities) return;
+
+      // Calculate totals
+      const totalHours = activities.reduce((sum, activity) => sum + (activity.hoursLogged || 0), 0);
+      const totalProjects = activities.filter(activity => activity.status === 'Completed').length;
+      const points = Math.floor(totalHours * 10); // 10 points per hour
+      const level = Math.floor(points / 100) + 1; // Level 1: 0-100 pts, Level 2: 101-200 pts, etc.
+
+      // Update user record
+      await client.models.User.update({
+        id: userId,
+        totalHours,
+        totalProjects,
+        points,
+        level
+      });
+
+      // Check for achievements
+      await checkAndAwardAchievements(userId, totalHours, totalProjects, points);
+
+    } catch (error) {
+      console.error('Error updating user stats:', error);
+    }
+  };
+
+  const checkAndAwardAchievements = async (userId: string, totalHours: number, totalProjects: number, points: number) => {
+    try {
+      // Get all achievements
+      const { data: achievements } = await client.models.Achievement.list();
+      if (!achievements) return;
+
+      // Get user's existing achievements
+      const { data: userAchievements } = await client.models.UserAchievement.list({
+        filter: { userId: { eq: userId } }
+      });
+
+      const existingAchievementIds = new Set(userAchievements?.map(ua => ua.achievementId) || []);
+
+      // Check each achievement
+      for (const achievement of achievements) {
+        if (existingAchievementIds.has(achievement.id)) continue; // Already earned
+
+        let shouldAward = false;
+
+        // Check achievement criteria based on achievement type/name
+        if (achievement.name === 'First Project' && totalProjects >= 1) {
+          shouldAward = true;
+        } else if (achievement.name === 'Hour Hero' && totalHours >= 10) {
+          shouldAward = true;
+        } else if (achievement.name === 'Volunteer Star' && totalHours >= 25) {
+          shouldAward = true;
+        } else if (achievement.name === 'Project Champion' && totalProjects >= 5) {
+          shouldAward = true;
+        } else if (achievement.name === 'Community Leader' && totalHours >= 50) {
+          shouldAward = true;
+        } else if (achievement.name === 'Level Up' && points >= 100) {
+          shouldAward = true;
+        }
+
+        if (shouldAward) {
+          // Award the achievement
+          await client.models.UserAchievement.create({
+            userId,
+            achievementId: achievement.id,
+            status: 'Completed',
+            progress: 100,
+            target: 100,
+            completedAt: new Date().toISOString()
+          });
+
+          // Show achievement notification
+          setNotification({ 
+            type: 'success', 
+            message: `🎉 Achievement Unlocked: ${achievement.name}! ${achievement.description}` 
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking achievements:', error);
     }
   };
 
@@ -587,6 +819,11 @@ const MyProjectsPage: React.FC = () => {
                 ? `${project.city}, ${project.state}`
                 : project.location || 'Location TBD';
               
+              // Get volunteer activity for joined projects
+              const volunteerActivity = activeTab === 'joined' 
+                ? volunteerActivities.find(va => va.projectId === project.id)
+                : null;
+              
               return (
                 <div key={project.id} style={{
                   background: 'white',
@@ -781,6 +1018,74 @@ const MyProjectsPage: React.FC = () => {
                         {formatDate(project.createdAt)}
                       </p>
                     </div>
+                    
+                    {/* Volunteer Activity Information - Only for joined projects */}
+                    {activeTab === 'joined' && volunteerActivity && (
+                      <>
+                        <div>
+                          <span style={{
+                            fontSize: '0.8rem',
+                            color: '#718096',
+                            fontWeight: '500',
+                            display: 'block',
+                            marginBottom: '0.25rem'
+                          }}>
+                            Hours Logged
+                          </span>
+                          <p style={{
+                            margin: 0,
+                            fontSize: '0.95rem',
+                            color: '#2d3748',
+                            fontWeight: '600'
+                          }}>
+                            {volunteerActivity.hoursLogged || 0} hours
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <span style={{
+                            fontSize: '0.8rem',
+                            color: '#718096',
+                            fontWeight: '500',
+                            display: 'block',
+                            marginBottom: '0.25rem'
+                          }}>
+                            Status
+                          </span>
+                          <p style={{
+                            margin: 0,
+                            fontSize: '0.95rem',
+                            color: volunteerActivity.status === 'Completed' ? '#10b981' : 
+                                   volunteerActivity.status === 'Active' ? '#3b82f6' : '#f59e0b',
+                            fontWeight: '600'
+                          }}>
+                            {volunteerActivity.status}
+                          </p>
+                        </div>
+                        
+                        {volunteerActivity.joinedAt && (
+                          <div>
+                            <span style={{
+                              fontSize: '0.8rem',
+                              color: '#718096',
+                              fontWeight: '500',
+                              display: 'block',
+                              marginBottom: '0.25rem'
+                            }}>
+                              Joined
+                            </span>
+                            <p style={{
+                              margin: 0,
+                              fontSize: '0.95rem',
+                              color: '#2d3748',
+                              fontWeight: '600'
+                            }}>
+                              {formatDate(volunteerActivity.joinedAt)}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
@@ -826,32 +1131,167 @@ const MyProjectsPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Unjoin Button - Only for joined projects */}
-                  {activeTab === 'joined' && (
+                  {/* Volunteer Activity Actions - Only for joined projects */}
+                  {activeTab === 'joined' && volunteerActivity && (
                     <div style={{
-                      display: 'flex',
-                      justifyContent: 'flex-end',
                       paddingTop: '1rem',
                       borderTop: '1px solid #e2e8f0'
                     }}>
-                      <button
-                        onClick={() => handleLeaveProject(project.id, project.title)}
-                        disabled={unjoinLoading === project.id}
-                        style={{
-                          background: unjoinLoading === project.id ? '#f3f4f6' : '#fee2e2',
-                          color: unjoinLoading === project.id ? '#9ca3af' : '#991b1b',
-                          border: 'none',
-                          padding: '0.4rem 0.8rem',
-                          borderRadius: '6px',
-                          cursor: unjoinLoading === project.id ? 'not-allowed' : 'pointer',
-                          fontSize: '0.8rem',
-                          fontWeight: '500',
-                          opacity: unjoinLoading === project.id ? 0.7 : 1,
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {unjoinLoading === project.id ? 'Leaving...' : '🚪 Leave'}
-                      </button>
+                      {/* Hour Logging Section */}
+                      {volunteerActivity.status !== 'Completed' && (
+                        <div style={{
+                          background: '#f8fafc',
+                          borderRadius: '8px',
+                          padding: '1rem',
+                          marginBottom: '1rem'
+                        }}>
+                          <h4 style={{
+                            fontSize: '1rem',
+                            fontWeight: '600',
+                            color: '#2d3748',
+                            margin: '0 0 0.75rem 0'
+                          }}>
+                            📝 Log Volunteer Hours
+                          </h4>
+                          <div style={{
+                            display: 'flex',
+                            gap: '0.5rem',
+                            alignItems: 'center'
+                          }}>
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0"
+                              max={project.duration ? project.duration - (volunteerActivity.hoursLogged || 0) : undefined}
+                              placeholder={project.duration ? `Max ${project.duration} hours` : 'Enter hours'}
+                              value={hoursInput[project.id] || ''}
+                              onChange={(e) => setHoursInput({ ...hoursInput, [project.id]: e.target.value })}
+                              disabled={!!(project.duration && (volunteerActivity.hoursLogged || 0) >= project.duration)}
+                              style={{
+                                flex: 1,
+                                padding: '0.5rem 0.75rem',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                fontSize: '0.9rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s',
+                                opacity: project.duration && (volunteerActivity.hoursLogged || 0) >= project.duration ? 0.5 : 1,
+                                backgroundColor: project.duration && (volunteerActivity.hoursLogged || 0) >= project.duration ? '#f3f4f6' : 'white'
+                              }}
+                            />
+                            <button
+                              onClick={() => handleLogHours(project.id)}
+                              disabled={loggingHours === project.id || !hoursInput[project.id] || !!(project.duration && (volunteerActivity.hoursLogged || 0) >= project.duration)}
+                              style={{
+                                background: loggingHours === project.id ? '#f3f4f6' : 
+                                           (project.duration && (volunteerActivity.hoursLogged || 0) >= project.duration) ? '#f3f4f6' : '#10b981',
+                                color: loggingHours === project.id ? '#9ca3af' : 
+                                       (project.duration && (volunteerActivity.hoursLogged || 0) >= project.duration) ? '#9ca3af' : 'white',
+                                border: 'none',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '6px',
+                                cursor: (loggingHours === project.id || (project.duration && (volunteerActivity.hoursLogged || 0) >= project.duration)) ? 'not-allowed' : 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: '500',
+                                opacity: (loggingHours === project.id || (project.duration && (volunteerActivity.hoursLogged || 0) >= project.duration)) ? 0.7 : 1,
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {loggingHours === project.id ? 'Logging...' : 
+                               (project.duration && (volunteerActivity.hoursLogged || 0) >= project.duration) ? 'Max Reached' : 'Log Hours'}
+                            </button>
+                          </div>
+                          <p style={{
+                            fontSize: '0.8rem',
+                            color: '#6b7280',
+                            margin: '0.5rem 0 0 0'
+                          }}>
+                            Current total: {volunteerActivity.hoursLogged || 0} hours
+                            {project.duration && (
+                              <span style={{ color: '#10b981', fontWeight: '500' }}>
+                                {' '}/ {project.duration} hours
+                              </span>
+                            )}
+                          </p>
+                          {project.duration && (volunteerActivity.hoursLogged || 0) >= project.duration && (
+                            <p style={{
+                              fontSize: '0.8rem',
+                              color: '#10b981',
+                              margin: '0.5rem 0 0 0',
+                              fontWeight: '500'
+                            }}>
+                              ✅ Maximum hours reached for this project
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Completion and Leave Buttons */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          {volunteerActivity.status !== 'Completed' && (
+                            <button
+                              onClick={() => handleCompleteProject(project.id)}
+                              disabled={completingProject === project.id}
+                              style={{
+                                background: completingProject === project.id ? '#f3f4f6' : '#10b981',
+                                color: completingProject === project.id ? '#9ca3af' : 'white',
+                                border: 'none',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '6px',
+                                cursor: completingProject === project.id ? 'not-allowed' : 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: '500',
+                                opacity: completingProject === project.id ? 0.7 : 1,
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {completingProject === project.id ? 'Completing...' : '✅ Mark Complete'}
+                            </button>
+                          )}
+                          
+                          {volunteerActivity.status === 'Completed' && (
+                            <div style={{
+                              background: '#f0fdf4',
+                              color: '#10b981',
+                              border: '1px solid #10b981',
+                              padding: '0.5rem 1rem',
+                              borderRadius: '6px',
+                              fontSize: '0.9rem',
+                              fontWeight: '500',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem'
+                            }}>
+                              🎉 Completed!
+                            </div>
+                          )}
+                        </div>
+                        
+                        <button
+                          onClick={() => handleLeaveProject(project.id, project.title)}
+                          disabled={unjoinLoading === project.id}
+                          style={{
+                            background: unjoinLoading === project.id ? '#f3f4f6' : '#fee2e2',
+                            color: unjoinLoading === project.id ? '#9ca3af' : '#991b1b',
+                            border: 'none',
+                            padding: '0.4rem 0.8rem',
+                            borderRadius: '6px',
+                            cursor: unjoinLoading === project.id ? 'not-allowed' : 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: '500',
+                            opacity: unjoinLoading === project.id ? 0.7 : 1,
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {unjoinLoading === project.id ? 'Leaving...' : '🚪 Leave'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1053,14 +1493,37 @@ const MyProjectsPage: React.FC = () => {
                       color: '#6366f1',
                       marginBottom: '0.5rem'
                     }}>
-                      {myJoinedProjects.reduce((sum, p) => sum + (p.duration || 0), 0).toFixed(1)}
+                      {volunteerActivities.reduce((sum, va) => sum + (va.hoursLogged || 0), 0).toFixed(1)}
                     </div>
                     <div style={{
                       fontSize: '0.9rem',
                       color: '#718096',
                       fontWeight: '500'
                     }}>
-                      Total Hours
+                      Hours Logged
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1.5rem',
+                    background: '#f7fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 'bold',
+                      color: '#10b981',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {volunteerActivities.filter(va => va.status === 'Completed').length}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#718096',
+                      fontWeight: '500'
+                    }}>
+                      Completed Projects
                     </div>
                   </div>
                 </>

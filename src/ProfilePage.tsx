@@ -609,10 +609,10 @@ const ProfilePage: React.FC = () => {
                   textAlign: 'center'
                 }}>
                   <h3 style={{ fontSize: '3rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                    {userStats?.completedActivities || 0}
+                    {userStats?.completedAchievements || 0}
                   </h3>
                   <p style={{ color: '#666', fontWeight: 'bold', marginBottom: '1rem' }}>
-                    Activities Completed
+                    Achievements Earned
                   </p>
                   <div style={{
                     background: '#e2e8f0',
@@ -624,10 +624,10 @@ const ProfilePage: React.FC = () => {
                       background: 'linear-gradient(135deg, #4CAF50, #45a049)',
                       height: '100%',
                       borderRadius: '10px',
-                      width: `${Math.min(((userStats?.completedActivities || 0) / 20) * 100, 100)}%`
+                      width: `${Math.min(((userStats?.completedAchievements || 0) / 10) * 100, 100)}%`
                     }}></div>
                   </div>
-                  <small style={{ color: '#666' }}>Goal: 20 activities</small>
+                  <small style={{ color: '#666' }}>Goal: 10 achievements</small>
                 </div>
               </div>
             </section>
