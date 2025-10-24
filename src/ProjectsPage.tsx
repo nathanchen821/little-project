@@ -4,7 +4,11 @@ import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../amplify/data/resource';
 import { getOrCreateUserProfile } from './utils/userProfile';
 
-const client = generateClient<Schema>();
+// Create separate clients for authenticated and public access
+const authenticatedClient = generateClient<Schema>();
+const publicClient = generateClient<Schema>({
+  authMode: 'apiKey'
+});
 
 const ProjectsPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -15,8 +19,11 @@ const ProjectsPage: React.FC = () => {
   
   useEffect(() => {
     checkAuthState();
-    loadProjects();
   }, []);
+
+  useEffect(() => {
+    loadProjects();
+  }, [isAuthenticated]);
   
   const checkAuthState = async () => {
     try {
@@ -39,8 +46,11 @@ const ProjectsPage: React.FC = () => {
 
   const loadProjects = async () => {
     try {
+      // Use public client for non-authenticated users, authenticated client for authenticated users
+      const clientToUse = isAuthenticated ? authenticatedClient : publicClient;
+      
       // Query only Active and Approved projects
-      const { data } = await client.models.Project.list({
+      const { data } = await clientToUse.models.Project.list({
         filter: {
           status: { eq: 'Active' },
           isApproved: { eq: true }
@@ -135,13 +145,13 @@ const ProjectsPage: React.FC = () => {
             <>
               <a href="/my-projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
               <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Achievement</a>
-              <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Leaderboard</a>
-              {isAdmin && (
-                <a href="/admin" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
-                  ⚙️ Admin
-                </a>
-              )}
             </>
+          )}
+          <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Leaderboard</a>
+          {isAuthenticated && isAdmin && (
+            <a href="/admin" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
+              ⚙️ Admin
+            </a>
           )}
           {isAuthenticated ? (
             <button

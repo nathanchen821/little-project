@@ -151,7 +151,7 @@ const schema = a.schema({
     })
     .authorization(allow => [
       // Allow public read access for approved projects
-      allow.publicApiKey().to(['read']),
+      allow.publicApiKey(),
       // Allow authenticated users full access
       allow.authenticated(),
       allow.group('admins'),

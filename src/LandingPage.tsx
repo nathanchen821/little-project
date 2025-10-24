@@ -3,7 +3,11 @@ import { getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../amplify/data/resource';
 
-const client = generateClient<Schema>();
+// Create separate clients for authenticated and public access
+const authenticatedClient = generateClient<Schema>();
+const publicClient = generateClient<Schema>({
+  authMode: 'apiKey'
+});
 
 const LandingPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -17,9 +21,12 @@ const LandingPage: React.FC = () => {
   
   useEffect(() => {
     checkAuthState();
+  }, []);
+
+  useEffect(() => {
     loadFeaturedProjects();
     loadStats();
-  }, []);
+  }, [isAuthenticated]);
   
   const checkAuthState = async () => {
     try {
@@ -32,8 +39,11 @@ const LandingPage: React.FC = () => {
 
   const loadFeaturedProjects = async () => {
     try {
+      // Use public client for non-authenticated users, authenticated client for authenticated users
+      const clientToUse = isAuthenticated ? authenticatedClient : publicClient;
+      
       // Query only Active and Approved projects
-      const { data } = await client.models.Project.list({
+      const { data } = await clientToUse.models.Project.list({
         filter: {
           status: { eq: 'Active' },
           isApproved: { eq: true }
@@ -55,8 +65,11 @@ const LandingPage: React.FC = () => {
 
   const loadStats = async () => {
     try {
+      // Use public client for non-authenticated users, authenticated client for authenticated users
+      const clientToUse = isAuthenticated ? authenticatedClient : publicClient;
+      
       // Load all users to calculate stats
-      const { data: users } = await client.models.User.list();
+      const { data: users } = await clientToUse.models.User.list();
       
       if (users) {
         // Calculate total hours volunteered

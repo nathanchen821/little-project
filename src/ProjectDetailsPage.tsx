@@ -3,7 +3,11 @@ import { getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../amplify/data/resource';
 
-const client = generateClient<Schema>();
+// Create separate clients for authenticated and public access
+const authenticatedClient = generateClient<Schema>();
+const publicClient = generateClient<Schema>({
+  authMode: 'apiKey'
+});
 
 const ProjectDetailsPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -17,8 +21,11 @@ const ProjectDetailsPage: React.FC = () => {
   
   useEffect(() => {
     checkAuthState();
-    loadProject();
   }, []);
+
+  useEffect(() => {
+    loadProject();
+  }, [isAuthenticated]);
 
   // Check join status when both authentication and project are available
   useEffect(() => {
@@ -53,7 +60,9 @@ const ProjectDetailsPage: React.FC = () => {
 
       // Load project from database
       console.log('Attempting to load project with ID:', projectId);
-      const { data } = await client.models.Project.get({ id: projectId });
+      // Use public client for non-authenticated users, authenticated client for authenticated users
+      const clientToUse = isAuthenticated ? authenticatedClient : publicClient;
+      const { data } = await clientToUse.models.Project.get({ id: projectId });
       
       console.log('Project data received:', data);
       
@@ -68,7 +77,7 @@ const ProjectDetailsPage: React.FC = () => {
       if (data.createdById) {
         try {
           console.log('Loading creator with ID:', data.createdById);
-          const { data: creatorData } = await client.models.User.get({ id: data.createdById });
+          const { data: creatorData } = await clientToUse.models.User.get({ id: data.createdById });
           if (creatorData) {
             console.log('Creator data loaded:', creatorData);
             setCreator(creatorData);
@@ -105,7 +114,7 @@ const ProjectDetailsPage: React.FC = () => {
       }
 
       console.log('User profile found:', userProfile.id);
-      const { data: existingActivities } = await client.models.VolunteerActivity.list({
+      const { data: existingActivities } = await authenticatedClient.models.VolunteerActivity.list({
         filter: { 
           userId: { eq: userProfile.id },
           projectId: { eq: projectId }
@@ -158,7 +167,7 @@ const ProjectDetailsPage: React.FC = () => {
       }
 
       // Check if user has already joined this project
-      const { data: existingActivities } = await client.models.VolunteerActivity.list({
+      const { data: existingActivities } = await authenticatedClient.models.VolunteerActivity.list({
         filter: { 
           userId: { eq: userProfile.id },
           projectId: { eq: project.id }
@@ -171,7 +180,7 @@ const ProjectDetailsPage: React.FC = () => {
       }
 
       // Create volunteer activity
-      const { errors } = await client.models.VolunteerActivity.create({
+      const { errors } = await authenticatedClient.models.VolunteerActivity.create({
         userId: userProfile.id,
         projectId: project.id,
         status: 'Joined',
@@ -192,7 +201,7 @@ const ProjectDetailsPage: React.FC = () => {
       const newCurrentVolunteers = (project.currentVolunteers || 0) + 1;
       const newSpotsAvailable = (project.spotsAvailable || 0) - 1;
 
-      const { errors: updateErrors } = await client.models.Project.update({
+      const { errors: updateErrors } = await authenticatedClient.models.Project.update({
         id: project.id,
         currentVolunteers: newCurrentVolunteers,
         spotsAvailable: newSpotsAvailable
