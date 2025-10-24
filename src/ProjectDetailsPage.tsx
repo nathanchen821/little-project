@@ -30,7 +30,10 @@ const ProjectDetailsPage: React.FC = () => {
     try {
       // Extract project ID from URL
       const path = window.location.pathname;
-      const projectId = path.split('/project/')[1];
+      const projectId = path.split('/project/')[1]?.replace(/\/$/, ''); // Remove trailing slash
+      
+      console.log('Current path:', path);
+      console.log('Extracted project ID:', projectId);
       
       if (!projectId) {
         setError('Project ID not found');
@@ -39,9 +42,13 @@ const ProjectDetailsPage: React.FC = () => {
       }
 
       // Load project from database
+      console.log('Attempting to load project with ID:', projectId);
       const { data } = await client.models.Project.get({ id: projectId });
       
+      console.log('Project data received:', data);
+      
       if (!data) {
+        console.log('No project data found for ID:', projectId);
         setError('Project not found');
         setLoading(false);
         return;
@@ -69,7 +76,8 @@ const ProjectDetailsPage: React.FC = () => {
       setProject(data);
     } catch (error) {
       console.error('Error loading project:', error);
-      setError('Failed to load project');
+      console.error('Error details:', error);
+      setError(`Failed to load project: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
