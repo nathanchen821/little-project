@@ -29,7 +29,11 @@ const MyProjectsPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [mySubmissions, setMySubmissions] = useState<Project[]>([]);
+  const [myJoinedProjects, setMyJoinedProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'submitted' | 'joined'>('joined');
+  const [unjoinLoading, setUnjoinLoading] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
   
   useEffect(() => {
     checkAuthState();
@@ -63,7 +67,7 @@ const MyProjectsPage: React.FC = () => {
         setIsAdmin(true);
       }
       
-      // Query projects where createdById === current user's id
+      // Query projects where createdById === current user's id (submitted projects)
       const { data: allProjects, errors } = await client.models.Project.list();
       
       if (errors) {
@@ -81,10 +85,53 @@ const MyProjectsPage: React.FC = () => {
       });
       
       setMySubmissions(sortedProjects as Project[]);
+      
+      // Load joined projects from VolunteerActivity
+      await loadJoinedProjects(userProfile.id);
+      
       setLoading(false);
     } catch (error) {
       console.error('Error loading submissions:', error);
       setLoading(false);
+    }
+  };
+
+  const loadJoinedProjects = async (userId: string) => {
+    try {
+      // Query volunteer activities for this user
+      const { data: volunteerActivities, errors } = await client.models.VolunteerActivity.list({
+        filter: { userId: { eq: userId } }
+      });
+      
+      if (errors) {
+        console.error('Error fetching volunteer activities:', errors);
+        return;
+      }
+      
+      if (!volunteerActivities || volunteerActivities.length === 0) {
+        setMyJoinedProjects([]);
+        return;
+      }
+      
+      // Get project IDs from volunteer activities
+      const projectIds = volunteerActivities.map(activity => activity.projectId);
+      
+      // Fetch project details for joined projects
+      const { data: allProjects } = await client.models.Project.list();
+      const joinedProjects = allProjects?.filter(p => projectIds.includes(p.id)) || [];
+      
+      // Sort by join date (newest first)
+      const sortedJoinedProjects = joinedProjects.sort((a, b) => {
+        const activityA = volunteerActivities.find(va => va.projectId === a.id);
+        const activityB = volunteerActivities.find(va => va.projectId === b.id);
+        if (!activityA || !activityB) return 0;
+        return new Date(activityB.joinedAt || activityB.createdAt).getTime() - 
+               new Date(activityA.joinedAt || activityA.createdAt).getTime();
+      });
+      
+      setMyJoinedProjects(sortedJoinedProjects as Project[]);
+    } catch (error) {
+      console.error('Error loading joined projects:', error);
     }
   };
   
@@ -185,6 +232,85 @@ const MyProjectsPage: React.FC = () => {
     }
   };
 
+  const handleLeaveProject = async (projectId: string, projectTitle: string) => {
+    if (!window.confirm(`Are you sure you want to leave "${projectTitle}"? You can rejoin later if spots are available.`)) {
+      return;
+    }
+
+    setUnjoinLoading(projectId);
+    setNotification(null);
+
+    try {
+      // Get current user profile
+      const userProfile = await getOrCreateUserProfile();
+      if (!userProfile) {
+        setNotification({ type: 'error', message: 'User profile not found. Please try again.' });
+        return;
+      }
+
+      // Find and delete the volunteer activity
+      const { data: volunteerActivities } = await client.models.VolunteerActivity.list({
+        filter: { 
+          userId: { eq: userProfile.id },
+          projectId: { eq: projectId }
+        }
+      });
+
+      if (!volunteerActivities || volunteerActivities.length === 0) {
+        setNotification({ type: 'error', message: 'No participation record found for this project.' });
+        return;
+      }
+
+      // Delete the volunteer activity
+      const { errors } = await client.models.VolunteerActivity.delete({ 
+        id: volunteerActivities[0].id 
+      });
+
+      if (errors) {
+        console.error('Error deleting volunteer activity:', errors);
+        setNotification({ type: 'error', message: 'Failed to leave project. Please try again.' });
+        return;
+      }
+
+      // Update project's current volunteers count
+      const project = myJoinedProjects.find(p => p.id === projectId);
+      if (project) {
+        const newCurrentVolunteers = Math.max((project.currentVolunteers || 0) - 1, 0);
+        const newSpotsAvailable = (project.spotsAvailable || 0) + 1;
+
+        const { errors: updateErrors } = await client.models.Project.update({
+          id: projectId,
+          currentVolunteers: newCurrentVolunteers,
+          spotsAvailable: newSpotsAvailable
+        });
+
+        if (updateErrors) {
+          console.error('Error updating project:', updateErrors);
+          // Don't show error to user since they're already unjoined
+        }
+      }
+
+      // Reload joined projects
+      await loadJoinedProjects(userProfile.id);
+      setNotification({ type: 'success', message: 'Successfully left the project.' });
+      
+      // Auto-dismiss notification after 3 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+    } catch (error) {
+      console.error('Error leaving project:', error);
+      setNotification({ type: 'error', message: 'Failed to leave project. Please try again.' });
+      
+      // Auto-dismiss error notification after 5 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+    } finally {
+      setUnjoinLoading(null);
+    }
+  };
+
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -266,6 +392,41 @@ const MyProjectsPage: React.FC = () => {
         </div>
       </nav>
 
+      {/* Notification */}
+      {notification && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: notification.type === 'success' ? '#10b981' : '#ef4444',
+          color: 'white',
+          padding: '1rem 1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          maxWidth: '400px',
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>{notification.type === 'success' ? '✅' : '❌'}</span>
+            <span>{notification.message}</span>
+            <button
+              onClick={() => setNotification(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                marginLeft: '0.5rem'
+              }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main style={{
         maxWidth: '1200px',
@@ -284,7 +445,7 @@ const MyProjectsPage: React.FC = () => {
             color: '#2d3748',
             marginBottom: '1rem'
           }}>
-            My Submitted Projects
+            My Projects
           </h1>
           <p style={{
             fontSize: '1.1rem',
@@ -292,8 +453,57 @@ const MyProjectsPage: React.FC = () => {
             maxWidth: '600px',
             margin: '0 auto'
           }}>
-            View and manage the projects you've submitted for approval
+            View and manage your submitted projects and projects you've joined
           </p>
+        </div>
+
+        {/* Tabs */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginBottom: '2rem',
+          background: 'white',
+          borderRadius: '12px',
+          padding: '0.5rem',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+          border: '1px solid #e2e8f0',
+          width: '500px',
+          margin: '0 auto 2rem auto'
+        }}>
+          <button
+            onClick={() => setActiveTab('joined')}
+            style={{
+              width: '200px',
+              padding: '0.75rem 1.5rem',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600',
+              background: activeTab === 'joined' ? 'linear-gradient(135deg, #4CAF50, #45a049)' : 'transparent',
+              color: activeTab === 'joined' ? 'white' : '#718096',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            🤝 Joined ({myJoinedProjects.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('submitted')}
+            style={{
+              width: '200px',
+              padding: '0.75rem 1.5rem',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600',
+              background: activeTab === 'submitted' ? 'linear-gradient(135deg, #4CAF50, #45a049)' : 'transparent',
+              color: activeTab === 'submitted' ? 'white' : '#718096',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            📝 Submitted ({mySubmissions.length})
+          </button>
         </div>
 
         {/* Loading State */}
@@ -312,7 +522,7 @@ const MyProjectsPage: React.FC = () => {
         )}
 
         {/* Empty State */}
-        {!loading && mySubmissions.length === 0 && (
+        {!loading && ((activeTab === 'submitted' && mySubmissions.length === 0) || (activeTab === 'joined' && myJoinedProjects.length === 0)) && (
           <div style={{
             textAlign: 'center',
             padding: '3rem',
@@ -324,23 +534,28 @@ const MyProjectsPage: React.FC = () => {
             <div style={{
               fontSize: '3rem',
               marginBottom: '1rem'
-            }}>📝</div>
+            }}>
+              {activeTab === 'submitted' ? '📝' : '🤝'}
+            </div>
             <h3 style={{
               fontSize: '1.5rem',
               fontWeight: '600',
               color: '#2d3748',
               marginBottom: '0.5rem'
             }}>
-              No Projects Yet
+              {activeTab === 'submitted' ? 'No Submitted Projects Yet' : 'No Joined Projects Yet'}
             </h3>
             <p style={{
               color: '#718096',
               marginBottom: '1.5rem'
             }}>
-              You haven't submitted any projects yet. Start making a difference!
+              {activeTab === 'submitted' 
+                ? "You haven't submitted any projects yet. Start making a difference!"
+                : "You haven't joined any projects yet. Browse available projects to get started!"
+              }
             </p>
             <button
-              onClick={() => window.location.href = '/submit-project'}
+              onClick={() => window.location.href = activeTab === 'submitted' ? '/submit-project' : '/projects'}
               style={{
                 background: 'linear-gradient(135deg, #4CAF50, #45a049)',
                 color: 'white',
@@ -353,20 +568,20 @@ const MyProjectsPage: React.FC = () => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
               }}
             >
-              Submit Your First Project
+              {activeTab === 'submitted' ? 'Submit Your First Project' : 'Browse Projects'}
             </button>
           </div>
         )}
 
         {/* Projects List */}
-        {!loading && mySubmissions.length > 0 && (
+        {!loading && ((activeTab === 'submitted' && mySubmissions.length > 0) || (activeTab === 'joined' && myJoinedProjects.length > 0)) && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '1.5rem',
             marginBottom: '3rem'
           }}>
-            {mySubmissions.map((project) => {
+            {(activeTab === 'submitted' ? mySubmissions : myJoinedProjects).map((project) => {
               const statusBadge = getStatusBadge(project.status, project.isApproved);
               const locationStr = project.city && project.state 
                 ? `${project.city}, ${project.state}`
@@ -391,14 +606,35 @@ const MyProjectsPage: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: 1 }}>
                       <span style={{ fontSize: '2.5rem' }}>{getCategoryIcon(project.category)}</span>
                       <div style={{ flex: 1 }}>
-                        <h3 style={{
-                          fontSize: '1.35rem',
-                          fontWeight: '600',
-                          color: '#2d3748',
-                          margin: '0 0 0.5rem 0'
-                        }}>
-                          {project.title}
-                        </h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                          <h3 style={{
+                            fontSize: '1.35rem',
+                            fontWeight: '600',
+                            color: '#2d3748',
+                            margin: '0'
+                          }}>
+                            {project.title}
+                          </h3>
+                          <button
+                            onClick={() => window.location.href = `/project/${project.id}`}
+                            style={{
+                              background: '#f3f4f6',
+                              color: '#374151',
+                              border: 'none',
+                              padding: '0.4rem 0.75rem',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem',
+                              fontWeight: '600',
+                              transition: 'all 0.2s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem'
+                            }}
+                          >
+                            🔍 View Details
+                          </button>
+                        </div>
                         <p style={{
                           fontSize: '0.9rem',
                           color: '#718096',
@@ -548,7 +784,7 @@ const MyProjectsPage: React.FC = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  {statusBadge.text === 'Pending' && (
+                  {activeTab === 'submitted' && statusBadge.text === 'Pending' && (
                     <div style={{
                       display: 'flex',
                       gap: '0.5rem',
@@ -589,6 +825,35 @@ const MyProjectsPage: React.FC = () => {
                       </button>
                     </div>
                   )}
+
+                  {/* Unjoin Button - Only for joined projects */}
+                  {activeTab === 'joined' && (
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      paddingTop: '1rem',
+                      borderTop: '1px solid #e2e8f0'
+                    }}>
+                      <button
+                        onClick={() => handleLeaveProject(project.id, project.title)}
+                        disabled={unjoinLoading === project.id}
+                        style={{
+                          background: unjoinLoading === project.id ? '#f3f4f6' : '#fee2e2',
+                          color: unjoinLoading === project.id ? '#9ca3af' : '#991b1b',
+                          border: 'none',
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '6px',
+                          cursor: unjoinLoading === project.id ? 'not-allowed' : 'pointer',
+                          fontSize: '0.8rem',
+                          fontWeight: '500',
+                          opacity: unjoinLoading === project.id ? 0.7 : 1,
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {unjoinLoading === project.id ? 'Leaving...' : '🚪 Leave'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -596,7 +861,7 @@ const MyProjectsPage: React.FC = () => {
         )}
 
         {/* Summary Section */}
-        {!loading && mySubmissions.length > 0 && (
+        {!loading && ((activeTab === 'submitted' && mySubmissions.length > 0) || (activeTab === 'joined' && myJoinedProjects.length > 0)) && (
           <div style={{
             background: 'white',
             borderRadius: '12px',
@@ -610,101 +875,196 @@ const MyProjectsPage: React.FC = () => {
               color: '#2d3748',
               marginBottom: '1.5rem'
             }}>
-              Submission Summary
+              {activeTab === 'submitted' ? 'Submission Summary' : 'Participation Summary'}
             </h2>
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '1.5rem'
             }}>
-              <div style={{
-                textAlign: 'center',
-                padding: '1.5rem',
-                background: '#f7fafc',
-                borderRadius: '8px'
-              }}>
-                <div style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  color: '#3b82f6',
-                  marginBottom: '0.5rem'
-                }}>
-                  {mySubmissions.length}
-                </div>
-                <div style={{
-                  fontSize: '0.9rem',
-                  color: '#718096',
-                  fontWeight: '500'
-                }}>
-                  Total Submissions
-                </div>
-              </div>
-              <div style={{
-                textAlign: 'center',
-                padding: '1.5rem',
-                background: '#f7fafc',
-                borderRadius: '8px'
-              }}>
-                <div style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  color: '#10b981',
-                  marginBottom: '0.5rem'
-                }}>
-                  {mySubmissions.filter(p => p.status === 'Active' && p.isApproved).length}
-                </div>
-                <div style={{
-                  fontSize: '0.9rem',
-                  color: '#718096',
-                  fontWeight: '500'
-                }}>
-                  Active Projects
-                </div>
-              </div>
-              <div style={{
-                textAlign: 'center',
-                padding: '1.5rem',
-                background: '#f7fafc',
-                borderRadius: '8px'
-              }}>
-                <div style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  color: '#f59e0b',
-                  marginBottom: '0.5rem'
-                }}>
-                  {mySubmissions.filter(p => p.status === 'Pending' || !p.isApproved).length}
-                </div>
-                <div style={{
-                  fontSize: '0.9rem',
-                  color: '#718096',
-                  fontWeight: '500'
-                }}>
-                  Pending Approval
-                </div>
-              </div>
-              <div style={{
-                textAlign: 'center',
-                padding: '1.5rem',
-                background: '#f7fafc',
-                borderRadius: '8px'
-              }}>
-                <div style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  color: '#6366f1',
-                  marginBottom: '0.5rem'
-                }}>
-                  {mySubmissions.reduce((sum, p) => sum + (p.currentVolunteers || 0), 0)}
-                </div>
-                <div style={{
-                  fontSize: '0.9rem',
-                  color: '#718096',
-                  fontWeight: '500'
-                }}>
-                  Total Volunteers
-                </div>
-              </div>
+              {activeTab === 'submitted' ? (
+                <>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1.5rem',
+                    background: '#f7fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 'bold',
+                      color: '#3b82f6',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {mySubmissions.length}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#718096',
+                      fontWeight: '500'
+                    }}>
+                      Total Submissions
+                    </div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1.5rem',
+                    background: '#f7fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 'bold',
+                      color: '#10b981',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {mySubmissions.filter(p => p.status === 'Active' && p.isApproved).length}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#718096',
+                      fontWeight: '500'
+                    }}>
+                      Active Projects
+                    </div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1.5rem',
+                    background: '#f7fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 'bold',
+                      color: '#f59e0b',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {mySubmissions.filter(p => p.status === 'Pending' || !p.isApproved).length}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#718096',
+                      fontWeight: '500'
+                    }}>
+                      Pending Approval
+                    </div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1.5rem',
+                    background: '#f7fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 'bold',
+                      color: '#6366f1',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {mySubmissions.reduce((sum, p) => sum + (p.currentVolunteers || 0), 0)}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#718096',
+                      fontWeight: '500'
+                    }}>
+                      Total Volunteers
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1.5rem',
+                    background: '#f7fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 'bold',
+                      color: '#3b82f6',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {myJoinedProjects.length}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#718096',
+                      fontWeight: '500'
+                    }}>
+                      Projects Joined
+                    </div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1.5rem',
+                    background: '#f7fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 'bold',
+                      color: '#10b981',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {myJoinedProjects.filter(p => p.status === 'Active' && p.isApproved).length}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#718096',
+                      fontWeight: '500'
+                    }}>
+                      Active Projects
+                    </div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1.5rem',
+                    background: '#f7fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 'bold',
+                      color: '#f59e0b',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {myJoinedProjects.filter(p => p.status === 'Pending' || !p.isApproved).length}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#718096',
+                      fontWeight: '500'
+                    }}>
+                      Pending Projects
+                    </div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1.5rem',
+                    background: '#f7fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 'bold',
+                      color: '#6366f1',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {myJoinedProjects.reduce((sum, p) => sum + (p.duration || 0), 0).toFixed(1)}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#718096',
+                      fontWeight: '500'
+                    }}>
+                      Total Hours
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

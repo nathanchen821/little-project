@@ -11,11 +11,21 @@ const ProjectDetailsPage: React.FC = () => {
   const [creator, setCreator] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasJoined, setHasJoined] = useState(false);
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
   
   useEffect(() => {
     checkAuthState();
     loadProject();
   }, []);
+
+  // Check join status when both authentication and project are available
+  useEffect(() => {
+    if (isAuthenticated && project) {
+      checkJoinStatus(project.id);
+    }
+  }, [isAuthenticated, project]);
   
   const checkAuthState = async () => {
     try {
@@ -82,6 +92,34 @@ const ProjectDetailsPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const checkJoinStatus = async (projectId: string) => {
+    try {
+      console.log('Checking join status for project:', projectId);
+      const { getOrCreateUserProfile } = await import('./utils/userProfile');
+      const userProfile = await getOrCreateUserProfile();
+      
+      if (!userProfile) {
+        console.log('No user profile found');
+        return;
+      }
+
+      console.log('User profile found:', userProfile.id);
+      const { data: existingActivities } = await client.models.VolunteerActivity.list({
+        filter: { 
+          userId: { eq: userProfile.id },
+          projectId: { eq: projectId }
+        }
+      });
+
+      console.log('Existing activities:', existingActivities);
+      const hasJoined = existingActivities && existingActivities.length > 0;
+      console.log('Has joined:', hasJoined);
+      setHasJoined(hasJoined);
+    } catch (error) {
+      console.error('Error checking join status:', error);
+    }
+  };
   
   const handleSignInClick = () => {
     window.location.href = '/app';
@@ -100,12 +138,96 @@ const ProjectDetailsPage: React.FC = () => {
     window.location.href = '/projects';
   };
 
-  const handleJoinProject = () => {
+  const handleJoinProject = async () => {
     if (!isAuthenticated) {
       window.location.href = '/app';
-    } else {
-      // In a real app, this would handle joining the project
-      alert('Project joined! Check your My Projects page for details.');
+      return;
+    }
+
+    setJoinLoading(true);
+    setNotification(null);
+
+    try {
+      // Get current user profile
+      const { getOrCreateUserProfile } = await import('./utils/userProfile');
+      const userProfile = await getOrCreateUserProfile();
+      
+      if (!userProfile) {
+        setNotification({ type: 'error', message: 'User profile not found. Please try again.' });
+        return;
+      }
+
+      // Check if user has already joined this project
+      const { data: existingActivities } = await client.models.VolunteerActivity.list({
+        filter: { 
+          userId: { eq: userProfile.id },
+          projectId: { eq: project.id }
+        }
+      });
+
+      if (existingActivities && existingActivities.length > 0) {
+        setNotification({ type: 'error', message: 'You have already joined this project!' });
+        return;
+      }
+
+      // Create volunteer activity
+      const { errors } = await client.models.VolunteerActivity.create({
+        userId: userProfile.id,
+        projectId: project.id,
+        status: 'Joined',
+        joinedAt: new Date().toISOString(),
+        hoursLogged: 0,
+        hoursVerified: 0,
+        isVerified: false,
+        certificateGenerated: false
+      });
+
+      if (errors) {
+        console.error('Error creating volunteer activity:', errors);
+        setNotification({ type: 'error', message: 'Failed to join project. Please try again.' });
+        return;
+      }
+
+      // Update project's current volunteers count
+      const newCurrentVolunteers = (project.currentVolunteers || 0) + 1;
+      const newSpotsAvailable = (project.spotsAvailable || 0) - 1;
+
+      const { errors: updateErrors } = await client.models.Project.update({
+        id: project.id,
+        currentVolunteers: newCurrentVolunteers,
+        spotsAvailable: newSpotsAvailable
+      });
+
+      if (updateErrors) {
+        console.error('Error updating project:', updateErrors);
+        // Don't show error to user since they're already joined
+      }
+
+      // Update local project state
+      setProject((prev: any) => ({
+        ...prev,
+        currentVolunteers: newCurrentVolunteers,
+        spotsAvailable: newSpotsAvailable
+      }));
+
+      // Update join status
+      setHasJoined(true);
+      setNotification({ type: 'success', message: 'Successfully joined the project! Check your My Projects page for details.' });
+      
+      // Auto-dismiss notification after 5 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+    } catch (error) {
+      console.error('Error joining project:', error);
+      setNotification({ type: 'error', message: 'Failed to join project. Please try again.' });
+      
+      // Auto-dismiss error notification after 5 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+    } finally {
+      setJoinLoading(false);
     }
   };
 
@@ -260,6 +382,41 @@ const ProjectDetailsPage: React.FC = () => {
           )}
         </div>
       </nav>
+
+      {/* Notification */}
+      {notification && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: notification.type === 'success' ? '#10b981' : '#ef4444',
+          color: 'white',
+          padding: '1rem 1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          maxWidth: '400px',
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>{notification.type === 'success' ? '✅' : '❌'}</span>
+            <span>{notification.message}</span>
+            <button
+              onClick={() => setNotification(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                marginLeft: '0.5rem'
+              }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main style={{
@@ -499,7 +656,7 @@ const ProjectDetailsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Join Button */}
+        {/* Join Button / Status */}
         <div style={{
           background: 'white',
           borderRadius: '15px',
@@ -507,31 +664,75 @@ const ProjectDetailsPage: React.FC = () => {
           boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
           textAlign: 'center'
         }}>
-          <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#2E7D32' }}>
-            Ready to Make a Difference?
-          </h3>
-          <p style={{ color: '#666', marginBottom: '2rem' }}>
-            Join this {project.category.toLowerCase()} project and make a positive impact in your community!
-          </p>
-          <button
-            onClick={handleJoinProject}
-            style={{
-              background: project.spotsAvailable > 0 
-                ? 'linear-gradient(135deg, #4CAF50, #45a049)' 
-                : 'linear-gradient(135deg, #9E9E9E, #757575)',
-              color: 'white',
-              border: 'none',
-              padding: '1rem 3rem',
-              borderRadius: '25px',
-              cursor: project.spotsAvailable > 0 ? 'pointer' : 'not-allowed',
-              fontWeight: 'bold',
-              fontSize: '1.1rem',
-              transition: 'transform 0.3s'
-            }}
-            disabled={project.spotsAvailable === 0}
-          >
-            {project.spotsAvailable > 0 ? 'Join This Project' : 'Project Full - Join Waitlist'}
-          </button>
+          {hasJoined ? (
+            <>
+              <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#10b981' }}>
+                ✅ Project Joined!
+              </h3>
+              <p style={{ color: '#666', marginBottom: '2rem' }}>
+                You're all set to participate in this {project.category.toLowerCase()} project. Check your My Projects page for updates!
+              </p>
+              <div style={{
+                background: '#f0fdf4',
+                border: '2px solid #10b981',
+                borderRadius: '15px',
+                padding: '1.5rem',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981', marginBottom: '0.5rem' }}>
+                  🎉 You're Making a Difference!
+                </div>
+                <div style={{ color: '#059669', fontSize: '0.9rem' }}>
+                  Your participation helps create positive change in the community
+                </div>
+              </div>
+              <button
+                onClick={() => window.location.href = '/my-projects'}
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '1rem 2rem',
+                  borderRadius: '25px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  transition: 'transform 0.3s'
+                }}
+              >
+                View My Projects
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#2E7D32' }}>
+                Ready to Make a Difference?
+              </h3>
+              <p style={{ color: '#666', marginBottom: '2rem' }}>
+                Join this {project.category.toLowerCase()} project and make a positive impact in your community!
+              </p>
+              <button
+                onClick={handleJoinProject}
+                disabled={joinLoading || project.spotsAvailable === 0}
+                style={{
+                  background: project.spotsAvailable > 0 
+                    ? 'linear-gradient(135deg, #4CAF50, #45a049)' 
+                    : 'linear-gradient(135deg, #9E9E9E, #757575)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '1rem 3rem',
+                  borderRadius: '25px',
+                  cursor: project.spotsAvailable > 0 && !joinLoading ? 'pointer' : 'not-allowed',
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  transition: 'transform 0.3s',
+                  opacity: joinLoading ? 0.7 : 1
+                }}
+              >
+                {joinLoading ? 'Joining...' : (project.spotsAvailable > 0 ? 'Join This Project' : 'Project Full - Join Waitlist')}
+              </button>
+            </>
+          )}
         </div>
       </main>
 
