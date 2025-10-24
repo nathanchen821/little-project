@@ -177,6 +177,12 @@ const MyProjectsPage: React.FC = () => {
         return;
       }
 
+      // Validate that hours have been logged before allowing completion
+      if ((activity.hoursLogged || 0) === 0) {
+        setNotification({ type: 'error', message: 'You must log at least some volunteer hours before marking this project as complete.' });
+        return;
+      }
+
       // Update the volunteer activity to completed
       const { errors } = await client.models.VolunteerActivity.update({
         id: activity.id,
@@ -1238,17 +1244,17 @@ const MyProjectsPage: React.FC = () => {
                           {volunteerActivity.status !== 'Completed' && (
                             <button
                               onClick={() => handleCompleteProject(project.id)}
-                              disabled={completingProject === project.id}
+                              disabled={completingProject === project.id || (volunteerActivity.hoursLogged || 0) === 0}
                               style={{
-                                background: completingProject === project.id ? '#f3f4f6' : '#10b981',
-                                color: completingProject === project.id ? '#9ca3af' : 'white',
+                                background: (completingProject === project.id || (volunteerActivity.hoursLogged || 0) === 0) ? '#f3f4f6' : '#10b981',
+                                color: (completingProject === project.id || (volunteerActivity.hoursLogged || 0) === 0) ? '#9ca3af' : 'white',
                                 border: 'none',
                                 padding: '0.5rem 1rem',
                                 borderRadius: '6px',
-                                cursor: completingProject === project.id ? 'not-allowed' : 'pointer',
+                                cursor: (completingProject === project.id || (volunteerActivity.hoursLogged || 0) === 0) ? 'not-allowed' : 'pointer',
                                 fontSize: '0.9rem',
                                 fontWeight: '500',
-                                opacity: completingProject === project.id ? 0.7 : 1,
+                                opacity: (completingProject === project.id || (volunteerActivity.hoursLogged || 0) === 0) ? 0.7 : 1,
                                 whiteSpace: 'nowrap'
                               }}
                             >
