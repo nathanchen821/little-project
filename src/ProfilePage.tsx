@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { signOut as amplifySignOut } from 'aws-amplify/auth';
-import { getOrCreateUserProfile, getUserStats, isProfileComplete, type UserProfile } from './utils/userProfile';
+import { getOrCreateUserProfile, getUserStats, isProfileComplete, getUserAchievementData, type UserProfile } from './utils/userProfile';
+import { seedAchievements, checkAchievementsExist } from './utils/seedAchievements';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../amplify/data/resource';
+
+const client = generateClient<Schema>();
 
 const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userStats, setUserStats] = useState<any>(null);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [achievementsLoading, setAchievementsLoading] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -28,12 +36,191 @@ const ProfilePage: React.FC = () => {
         // Load user stats
         const stats = await getUserStats(profile.id);
         setUserStats(stats);
+
+        // Load achievements
+        await loadAchievements(profile.id);
+        
+        // Load recent activities
+        await loadRecentActivities(profile.id);
       }
     } catch (error) {
       console.error('Error loading user data:', error);
       window.location.href = '/app';
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAchievements = async (userId: string) => {
+    try {
+      setAchievementsLoading(true);
+      
+      // Check if achievements exist, if not, seed them
+      const achievementsExist = await checkAchievementsExist();
+      if (!achievementsExist) {
+        console.log('No achievements found, seeding sample achievements...');
+        await seedAchievements();
+      }
+      
+      const achievementData = await getUserAchievementData(userId);
+      setAchievements(achievementData);
+    } catch (error) {
+      console.error('Error loading achievements:', error);
+      setAchievements([]);
+    } finally {
+      setAchievementsLoading(false);
+    }
+  };
+
+  const loadRecentActivities = async (userId: string) => {
+    try {
+      
+      // Fetch user's volunteer activities
+      const { data: activities } = await client.models.VolunteerActivity.list({
+        filter: { userId: { eq: userId } }
+      });
+      
+      console.log('User activities:', activities);
+      
+      // Debug: List all projects to see what's available
+      const { data: allProjects } = await client.models.Project.list();
+      console.log('All projects in database:', allProjects);
+      
+      // Fetch project details for activities
+      const projectIds = [...new Set(activities?.map(a => a.projectId) || [])];
+      console.log('Project IDs to fetch:', projectIds);
+      
+      let projects = [];
+      
+      // Fetch projects one by one since 'in' filter is not available
+      for (const projectId of projectIds) {
+        try {
+          const { data: project } = await client.models.Project.get({ id: projectId });
+          if (project) {
+            console.log('Fetched project:', project.title, 'ID:', project.id);
+            projects.push(project);
+          }
+        } catch (error) {
+          console.error(`Error fetching project ${projectId}:`, error);
+        }
+      }
+      
+      const projectMap = new Map();
+      projects.forEach(project => {
+        projectMap.set(project.id, project);
+      });
+      
+      console.log('Project map:', projectMap);
+      
+      // Create activity feed from volunteer activities
+      const activityFeed = activities?.map(activity => {
+        const project = projectMap.get(activity.projectId);
+        const activityDate = new Date(activity.joinedAt || activity.createdAt || '');
+        
+        console.log('Activity:', activity.id, 'Project ID:', activity.projectId, 'Project:', project?.title || 'NOT FOUND');
+        
+        return {
+          id: activity.id,
+          type: activity.status,
+          title: getActivityTitle(activity.status, project?.title || 'Unknown Project'),
+          description: getActivityDescription(activity.status, project?.title || 'Unknown Project', activity.hoursVerified || 0),
+          date: activityDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          hours: activity.hoursVerified || 0,
+          category: project?.category || 'General',
+          projectTitle: project?.title || 'Unknown Project',
+          status: activity.status,
+          completedAt: activity.completedAt,
+          joinedAt: activity.joinedAt
+        };
+      }).sort((a, b) => {
+        // Sort by most recent first
+        const dateA = new Date(a.joinedAt || a.completedAt || '');
+        const dateB = new Date(b.joinedAt || b.completedAt || '');
+        return dateB.getTime() - dateA.getTime();
+      }).slice(0, 10); // Show only last 10 activities
+      
+      setRecentActivities(activityFeed || []);
+    } catch (error) {
+      console.error('Error loading recent activities:', error);
+      setRecentActivities([]);
+    }
+  };
+
+  const getActivityTitle = (status: string, projectTitle: string) => {
+    switch (status) {
+      case 'Joined':
+        return `Joined ${projectTitle}`;
+      case 'In Progress':
+        return `Started ${projectTitle}`;
+      case 'Completed':
+        return `Completed ${projectTitle}`;
+      default:
+        return `Updated ${projectTitle}`;
+    }
+  };
+
+  const getActivityDescription = (status: string, projectTitle: string, hours: number) => {
+    switch (status) {
+      case 'Joined':
+        return `You joined the volunteer project "${projectTitle}"`;
+      case 'In Progress':
+        return `You started volunteering at "${projectTitle}"`;
+      case 'Completed':
+        return `You completed volunteering at "${projectTitle}"${hours > 0 ? ` with ${hours} hours` : ''}`;
+      default:
+        return `Activity update for "${projectTitle}"`;
+    }
+  };
+
+  const getActivityIcon = (status: string, category: string) => {
+    if (status === 'Completed') return '✅';
+    if (status === 'In Progress') return '🔄';
+    if (status === 'Joined') return '👋';
+    if (category === 'Education') return '📚';
+    if (category === 'Community') return '🤝';
+    return '📋';
+  };
+
+  const getActivityIconBackground = (status: string) => {
+    switch (status) {
+      case 'Completed':
+        return 'linear-gradient(135deg, #4CAF50, #45a049)';
+      case 'In Progress':
+        return 'linear-gradient(135deg, #FF9800, #F57C00)';
+      case 'Joined':
+        return 'linear-gradient(135deg, #2196F3, #1976D2)';
+      default:
+        return 'linear-gradient(135deg, #9E9E9E, #757575)';
+    }
+  };
+
+  const getActivityStatusColor = (status: string) => {
+    switch (status) {
+      case 'Completed':
+        return '#4CAF50';
+      case 'In Progress':
+        return '#FF9800';
+      case 'Joined':
+        return '#2196F3';
+      default:
+        return '#9E9E9E';
+    }
+  };
+
+  const getActivityStatusText = (status: string) => {
+    switch (status) {
+      case 'Completed':
+        return '✅ Completed';
+      case 'In Progress':
+        return '🔄 In Progress';
+      case 'Joined':
+        return '👋 Joined';
+      default:
+        return '📋 Updated';
     }
   };
 
@@ -64,75 +251,36 @@ const ProfilePage: React.FC = () => {
     return null;
   }
 
-  const mockAchievements = [
-    {
-      id: 1,
-      title: "First Steps",
-      description: "Complete your first volunteer project",
-      icon: "🌟",
-      earned: true,
-      date: "Nov 15, 2025"
-    },
-    {
-      id: 2,
-      title: "Education Helper",
-      description: "Volunteer 5+ hours in education projects",
-      icon: "📚",
-      earned: true,
-      date: "Nov 30, 2025"
-    },
-    {
-      id: 3,
-      title: "Community Champion",
-      description: "Complete 3 community service projects",
-      icon: "🤝",
-      earned: true,
-      date: "Nov 30, 2025"
-    },
-    {
-      id: 4,
-      title: "Volunteer Streak",
-      description: "Volunteer for 5 consecutive weeks",
-      icon: "🔥",
-      earned: false,
-      progress: "2/5 weeks"
-    },
-    {
-      id: 5,
-      title: "Diamond Volunteer",
-      description: "Complete 50+ volunteer hours",
-      icon: "💎",
-      earned: false,
-      progress: "12.5/50 hours"
-    }
-  ];
+  // Format achievement data for display
+  const formatAchievementDate = (dateString: string | null) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
-  const mockStories = [
-    {
-      id: 1,
-      title: "Helping at the Food Bank",
-      description: "Spent 4 hours organizing donations and helping families in need.",
-      date: "Nov 30, 2025",
-      hours: 4,
-      category: "Community"
-    },
-    {
-      id: 2,
-      title: "Senior Center Activities",
-      description: "Led arts and crafts activities for elderly residents.",
-      date: "Nov 25, 2025",
-      hours: 2.5,
-      category: "Community"
-    },
-    {
-      id: 3,
-      title: "Tutoring Program",
-      description: "Helped elementary students with reading and math homework.",
-      date: "Nov 15, 2025",
-      hours: 6,
-      category: "Education"
+  const formatProgress = (achievement: any) => {
+    if (achievement.isEarned) {
+      return `Earned ${formatAchievementDate(achievement.completedAt)}`;
+    } else if (achievement.status === 'In Progress') {
+      // Format progress based on achievement type
+      if (achievement.type === 'Hours') {
+        return `${achievement.progress}/${achievement.target} hours`;
+      } else if (achievement.type === 'Projects') {
+        return `${achievement.progress}/${achievement.target} projects`;
+      } else if (achievement.type === 'Streak') {
+        return `${achievement.progress}/${achievement.target} weeks`;
+      } else {
+        return `${achievement.progress}/${achievement.target}`;
+      }
+    } else {
+      return 'Not Started';
     }
-  ];
+  };
+
+  // Real activities are now loaded from the database
 
   return (
     <div style={{ 
@@ -495,52 +643,66 @@ const ProfilePage: React.FC = () => {
                 padding: '2rem',
                 boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
               }}>
-                {mockStories.map((story, index) => (
-                  <div key={story.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem',
-                    padding: '1rem 0',
-                    borderBottom: index < mockStories.length - 1 ? '1px solid #e2e8f0' : 'none'
+                {recentActivities.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '2rem',
+                    color: '#666'
                   }}>
-                    <div style={{
-                      fontSize: '2rem',
-                      background: 'linear-gradient(135deg, #4CAF50, #2196F3)',
-                      borderRadius: '50%',
-                      width: '50px',
-                      height: '50px',
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+                    <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
+                      No Recent Activity
+                    </h3>
+                    <p>Start volunteering to see your activity here!</p>
+                  </div>
+                ) : (
+                  recentActivities.map((activity, index) => (
+                    <div key={activity.id} style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white'
+                      gap: '1rem',
+                      padding: '1rem 0',
+                      borderBottom: index < recentActivities.length - 1 ? '1px solid #e2e8f0' : 'none'
                     }}>
-                      {story.category === 'Education' ? '📚' : '🤝'}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <h4 style={{ marginBottom: '0.5rem', color: '#2E7D32' }}>
-                        {story.title}
-                      </h4>
-                      <p style={{ color: '#666', marginBottom: '0.5rem' }}>
-                        {story.description}
-                      </p>
-                      <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                        <span>📅 {story.date}</span>
-                        <span>⏱️ {story.hours} hours</span>
-                        <span>🏷️ {story.category}</span>
+                      <div style={{
+                        fontSize: '2rem',
+                        background: getActivityIconBackground(activity.status),
+                        borderRadius: '50%',
+                        width: '50px',
+                        height: '50px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white'
+                      }}>
+                        {getActivityIcon(activity.status, activity.category)}
                       </div>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ marginBottom: '0.5rem', color: '#2E7D32' }}>
+                          {activity.title}
+                        </h4>
+                        <p style={{ color: '#666', marginBottom: '0.5rem' }}>
+                          {activity.description}
+                        </p>
+                        <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                          <span>📅 {activity.date}</span>
+                          {activity.hours > 0 && <span>⏱️ {activity.hours} hours</span>}
+                          <span>🏷️ {activity.category}</span>
+                        </div>
+                      </div>
+                      <span style={{
+                        background: getActivityStatusColor(activity.status),
+                        color: 'white',
+                        padding: '0.3rem 0.8rem',
+                        borderRadius: '15px',
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold'
+                      }}>
+                        {getActivityStatusText(activity.status)}
+                      </span>
                     </div>
-                    <span style={{
-                      background: '#4CAF50',
-                      color: 'white',
-                      padding: '0.3rem 0.8rem',
-                      borderRadius: '15px',
-                      fontSize: '0.8rem',
-                      fontWeight: 'bold'
-                    }}>
-                      ✅ Completed
-                    </span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </section>
           </div>
@@ -552,56 +714,89 @@ const ProfilePage: React.FC = () => {
             <h2 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', color: '#2E7D32' }}>
               🏆 Achievements & Badges
             </h2>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '2rem'
-            }}>
-              {mockAchievements.map(achievement => (
-                <div key={achievement.id} style={{
-                  background: 'white',
-                  borderRadius: '15px',
-                  padding: '2rem',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                  textAlign: 'center',
-                  border: achievement.earned ? '2px solid #4CAF50' : '2px solid #e2e8f0',
-                  opacity: achievement.earned ? 1 : 0.7
-                }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-                    {achievement.icon}
+            {achievementsLoading ? (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '4rem',
+                background: 'white',
+                borderRadius: '15px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{ fontSize: '1.2rem', color: '#666' }}>Loading achievements...</div>
+              </div>
+            ) : achievements.length === 0 ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '4rem',
+                background: 'white',
+                borderRadius: '15px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏆</div>
+                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#2E7D32' }}>
+                  No Achievements Available
+                </h3>
+                <p style={{ color: '#666', marginBottom: '0' }}>
+                  Start volunteering to unlock achievements and earn badges!
+                </p>
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '2rem'
+              }}>
+                {achievements.map(achievement => (
+                  <div key={achievement.id} style={{
+                    background: 'white',
+                    borderRadius: '15px',
+                    padding: '2rem',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                    textAlign: 'center',
+                    border: achievement.isEarned ? '2px solid #4CAF50' : '2px solid #e2e8f0',
+                    opacity: achievement.isEarned ? 1 : 0.7
+                  }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                      {achievement.icon}
+                    </div>
+                    <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
+                      {achievement.name}
+                    </h3>
+                    <p style={{ color: '#666', marginBottom: '1rem' }}>
+                      {achievement.description}
+                    </p>
+                    {achievement.isEarned ? (
+                      <span style={{
+                        background: '#4CAF50',
+                        color: 'white',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '20px',
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold'
+                      }}>
+                        ✅ {formatProgress(achievement)}
+                      </span>
+                    ) : (
+                      <span style={{
+                        background: '#e2e8f0',
+                        color: '#666',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '20px',
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold'
+                      }}>
+                        🔒 {formatProgress(achievement)}
+                      </span>
+                    )}
                   </div>
-                  <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
-                    {achievement.title}
-                  </h3>
-                  <p style={{ color: '#666', marginBottom: '1rem' }}>
-                    {achievement.description}
-                  </p>
-                  {achievement.earned ? (
-                    <span style={{
-                      background: '#4CAF50',
-                      color: 'white',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '20px',
-                      fontSize: '0.9rem',
-                      fontWeight: 'bold'
-                    }}>
-                      ✅ Earned {achievement.date}
-                    </span>
-                  ) : (
-                    <span style={{
-                      background: '#e2e8f0',
-                      color: '#666',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '20px',
-                      fontSize: '0.9rem',
-                      fontWeight: 'bold'
-                    }}>
-                      🔒 {achievement.progress}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
