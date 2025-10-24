@@ -376,21 +376,23 @@ const ProjectsPage: React.FC = () => {
                   </span>
                 </div>
 
-                <button style={{
-                  width: '100%',
-                  background: project.spotsAvailable && project.spotsAvailable > 0 
-                    ? 'linear-gradient(135deg, #4CAF50, #45a049)' 
-                    : 'linear-gradient(135deg, #9E9E9E, #757575)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.8rem',
-                  borderRadius: '20px',
-                  cursor: project.spotsAvailable && project.spotsAvailable > 0 ? 'pointer' : 'not-allowed',
-                  fontWeight: 'bold',
-                  transition: 'transform 0.3s',
-                  fontSize: '0.9rem'
-                }}
-                disabled={!project.spotsAvailable || project.spotsAvailable === 0}
+                <button 
+                  onClick={() => window.location.href = `/project/${project.id}`}
+                  style={{
+                    width: '100%',
+                    background: project.spotsAvailable && project.spotsAvailable > 0 
+                      ? 'linear-gradient(135deg, #4CAF50, #45a049)' 
+                      : 'linear-gradient(135deg, #9E9E9E, #757575)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.8rem',
+                    borderRadius: '20px',
+                    cursor: project.spotsAvailable && project.spotsAvailable > 0 ? 'pointer' : 'not-allowed',
+                    fontWeight: 'bold',
+                    transition: 'transform 0.3s',
+                    fontSize: '0.9rem'
+                  }}
+                  disabled={!project.spotsAvailable || project.spotsAvailable === 0}
                 >
                   {project.spotsAvailable && project.spotsAvailable > 0 ? 'Learn More' : 'Full - Join Waitlist'}
                 </button>

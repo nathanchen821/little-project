@@ -1,11 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../amplify/data/resource';
+
+const client = generateClient<Schema>();
 
 const LandingPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalHours: 0,
+    totalProjects: 0,
+    activeVolunteers: 0
+  });
   
   useEffect(() => {
     checkAuthState();
+    loadFeaturedProjects();
+    loadStats();
   }, []);
   
   const checkAuthState = async () => {
@@ -14,6 +27,56 @@ const LandingPage: React.FC = () => {
       setIsAuthenticated(true);
     } catch (error) {
       setIsAuthenticated(false);
+    }
+  };
+
+  const loadFeaturedProjects = async () => {
+    try {
+      // Query only Active and Approved projects
+      const { data } = await client.models.Project.list({
+        filter: {
+          status: { eq: 'Active' },
+          isApproved: { eq: true }
+        }
+      });
+      
+      if (data && data.length > 0) {
+        // Randomly select 3 projects
+        const shuffled = [...data].sort(() => 0.5 - Math.random());
+        setFeaturedProjects(shuffled.slice(0, 3));
+      }
+    } catch (error) {
+      console.error('Error loading featured projects:', error);
+      setFeaturedProjects([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      // Load all users to calculate stats
+      const { data: users } = await client.models.User.list();
+      
+      if (users) {
+        // Calculate total hours volunteered
+        const totalHours = users.reduce((sum, user) => sum + (user.totalHours || 0), 0);
+        
+        // Calculate total projects completed
+        const totalProjects = users.reduce((sum, user) => sum + (user.totalProjects || 0), 0);
+        
+        // Count all registered users as active volunteers
+        const activeVolunteers = users.length;
+        
+        setStats({
+          totalHours,
+          totalProjects,
+          activeVolunteers
+        });
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+      // Keep default values (0) on error
     }
   };
   
@@ -28,6 +91,28 @@ const LandingPage: React.FC = () => {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  // Format date for display
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return 'TBD';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  // Get category icon
+  const getCategoryIcon = (category: string) => {
+    if (category.includes('Education')) return '📚';
+    if (category.includes('Community')) return '🤝';
+    if (category.includes('Technology')) return '💻';
+    if (category.includes('Environment')) return '🌳';
+    if (category.includes('Healthcare')) return '🏥';
+    if (category.includes('Animal')) return '🐾';
+    if (category.includes('Senior')) return '👴';
+    if (category.includes('Arts')) return '🎨';
+    if (category.includes('Food')) return '🍽️';
+    if (category.includes('Sports')) return '🏃';
+    return '🌱';
   };
 
   return (
@@ -146,104 +231,64 @@ const LandingPage: React.FC = () => {
           }}>
             Featured Projects
           </h2>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '2rem'
-          }}>
-            <div style={{
-              background: 'white',
-              borderRadius: '15px',
-              padding: '1.5rem',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-              transition: 'transform 0.3s'
-            }}>
-              <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>🌱</div>
-              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Helping Seniors with Yardwork</h3>
-              <p style={{ color: '#666', marginBottom: '1rem' }}>Help elderly residents with yard maintenance, raking leaves, and light outdoor tasks</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                <span>📅 Dec 7, 2025</span>
-                <span>⏱️ 3 hours</span>
-                <span>📍 Blacksburg Senior Center</span>
-              </div>
-              <button style={{
-                width: '100%',
-                background: 'linear-gradient(135deg, #FFC107, #FF9800)',
-                color: 'white',
-                border: 'none',
-                padding: '0.8rem',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                transition: 'transform 0.3s'
-              }}>
-                Learn More
-              </button>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '3rem' }}>
+              <div style={{ fontSize: '1.5rem', color: '#666' }}>Loading featured projects...</div>
             </div>
-
-            <div style={{
-              background: 'white',
-              borderRadius: '15px',
-              padding: '1.5rem',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-              transition: 'transform 0.3s'
-            }}>
-              <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>📚</div>
-              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Elementary Tutoring</h3>
-              <p style={{ color: '#666', marginBottom: '1rem' }}>Help 3rd-5th graders with reading, math homework, and study skills</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                <span>📅 Jan 11, 2026</span>
-                <span>⏱️ 2 hours</span>
-                <span>📍 Blacksburg Elementary School</span>
-              </div>
-              <a href="/project/elementary-tutoring" style={{
-                width: '100%',
-                background: 'linear-gradient(135deg, #FFC107, #FF9800)',
-                color: 'white',
-                border: 'none',
-                padding: '0.8rem',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                transition: 'transform 0.3s',
-                textDecoration: 'none',
-                display: 'block',
-                textAlign: 'center'
-              }}>
-                Learn More
-              </a>
+          ) : featuredProjects.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+              <h3 style={{ fontSize: '1.5rem', color: '#666', marginBottom: '0.5rem' }}>No projects available</h3>
+              <p style={{ color: '#999' }}>Check back soon for new volunteer opportunities!</p>
             </div>
-
+          ) : (
             <div style={{
-              background: 'white',
-              borderRadius: '15px',
-              padding: '1.5rem',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-              transition: 'transform 0.3s'
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '2rem'
             }}>
-              <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>📦</div>
-              <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>Shelter Care Packing</h3>
-              <p style={{ color: '#666', marginBottom: '1rem' }}>Create essential care packages with toiletries, snacks, and comfort items for families in need</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                <span>📅 Aug 12, 2025</span>
-                <span>⏱️ 4 hours</span>
-                <span>📍 St. Michael Lutheran Church</span>
-              </div>
-              <button style={{
-                width: '100%',
-                background: 'linear-gradient(135deg, #FFC107, #FF9800)',
-                color: 'white',
-                border: 'none',
-                padding: '0.8rem',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                transition: 'transform 0.3s'
-              }}>
-                Learn More
-              </button>
+              {featuredProjects.map(project => (
+                <div key={project.id} style={{
+                  background: 'white',
+                  borderRadius: '15px',
+                  padding: '1.5rem',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                  transition: 'transform 0.3s'
+                }}>
+                  <div style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '1rem' }}>
+                    {getCategoryIcon(project.category || '')}
+                  </div>
+                  <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
+                    {project.title}
+                  </h3>
+                  <p style={{ color: '#666', marginBottom: '1rem' }}>
+                    {project.description}
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                    <span>📅 {formatDate(project.startDate)}</span>
+                    <span>⏱️ {project.duration} hours</span>
+                    <span>📍 {project.location}</span>
+                  </div>
+                  <a href={`/project/${project.id}`} style={{
+                    width: '100%',
+                    background: 'linear-gradient(135deg, #FFC107, #FF9800)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.8rem',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    transition: 'transform 0.3s',
+                    textDecoration: 'none',
+                    display: 'block',
+                    textAlign: 'center'
+                  }}>
+                    Learn More
+                  </a>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </section>
 
         {/* Quick Stats */}
@@ -260,7 +305,9 @@ const LandingPage: React.FC = () => {
             textAlign: 'center',
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
           }}>
-            <h3 style={{ fontSize: '2.5rem', color: '#4CAF50', marginBottom: '0.5rem' }}>47</h3>
+            <h3 style={{ fontSize: '2.5rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
+              {stats.totalHours}
+            </h3>
             <p style={{ color: '#666', fontWeight: 'bold' }}>Hours Volunteered</p>
           </div>
           <div style={{
@@ -270,7 +317,9 @@ const LandingPage: React.FC = () => {
             textAlign: 'center',
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
           }}>
-            <h3 style={{ fontSize: '2.5rem', color: '#4CAF50', marginBottom: '0.5rem' }}>8</h3>
+            <h3 style={{ fontSize: '2.5rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
+              {stats.totalProjects}
+            </h3>
             <p style={{ color: '#666', fontWeight: 'bold' }}>Projects Completed</p>
           </div>
           <div style={{
@@ -280,7 +329,9 @@ const LandingPage: React.FC = () => {
             textAlign: 'center',
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
           }}>
-            <h3 style={{ fontSize: '2.5rem', color: '#4CAF50', marginBottom: '0.5rem' }}>12</h3>
+            <h3 style={{ fontSize: '2.5rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
+              {stats.activeVolunteers}
+            </h3>
             <p style={{ color: '#666', fontWeight: 'bold' }}>Active Volunteers</p>
           </div>
         </section>

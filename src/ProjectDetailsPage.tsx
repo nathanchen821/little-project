@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../amplify/data/resource';
+
+const client = generateClient<Schema>();
 
 const ProjectDetailsPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [project, setProject] = useState<any>(null);
+  const [creator, setCreator] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     checkAuthState();
+    loadProject();
   }, []);
   
   const checkAuthState = async () => {
@@ -14,6 +23,55 @@ const ProjectDetailsPage: React.FC = () => {
       setIsAuthenticated(true);
     } catch (error) {
       setIsAuthenticated(false);
+    }
+  };
+
+  const loadProject = async () => {
+    try {
+      // Extract project ID from URL
+      const path = window.location.pathname;
+      const projectId = path.split('/project/')[1];
+      
+      if (!projectId) {
+        setError('Project ID not found');
+        setLoading(false);
+        return;
+      }
+
+      // Load project from database
+      const { data } = await client.models.Project.get({ id: projectId });
+      
+      if (!data) {
+        setError('Project not found');
+        setLoading(false);
+        return;
+      }
+
+      // If we have a createdById, load the creator information
+      if (data.createdById) {
+        try {
+          console.log('Loading creator with ID:', data.createdById);
+          const { data: creatorData } = await client.models.User.get({ id: data.createdById });
+          if (creatorData) {
+            console.log('Creator data loaded:', creatorData);
+            setCreator(creatorData);
+          } else {
+            console.log('No creator data found for ID:', data.createdById);
+          }
+        } catch (error) {
+          console.error('Error loading creator:', error);
+          // Continue without creator data
+        }
+      } else {
+        console.log('No createdById found for project');
+      }
+
+      setProject(data);
+    } catch (error) {
+      console.error('Error loading project:', error);
+      setError('Failed to load project');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -43,29 +101,81 @@ const ProjectDetailsPage: React.FC = () => {
     }
   };
 
-  // Project details for Elementary Tutoring
-  const project = {
-    id: 5,
-    title: "Elementary Tutoring",
-    description: "Help 3rd-5th graders with reading, math homework, and study skills in a supportive learning environment",
-    category: "Education",
-    location: "Blacksburg Elementary School",
-    address: "123 Main Street, Blacksburg, VA 24060",
-    date: "January 11, 2026",
-    time: "3:30 PM - 5:30 PM",
-    duration: "2 hours",
-    spotsAvailable: 5,
-    totalSpots: 8,
-    icon: "✏️",
-    difficulty: "Medium",
-    requirements: "Good grades in math/reading, background check required",
-    ageRequirement: "High school students (ages 14-18)",
-    whatToBring: "Positive attitude, patience, and enthusiasm for learning",
-    whatToExpect: "Work one-on-one or in small groups with elementary students, helping with homework, reading practice, and basic math concepts",
-    impact: "Make a real difference in young students' academic confidence and success",
-    skills: ["Patience", "Communication", "Teaching", "Math", "Reading"],
-    contact: "Ms. Sarah Johnson - sjohnson@blacksburg.edu - (540) 555-0123"
+  // Get category icon
+  const getCategoryIcon = (category: string) => {
+    if (category.includes('Education')) return '📚';
+    if (category.includes('Community')) return '🤝';
+    if (category.includes('Technology')) return '💻';
+    if (category.includes('Environment')) return '🌳';
+    if (category.includes('Healthcare')) return '🏥';
+    if (category.includes('Animal')) return '🐾';
+    if (category.includes('Senior')) return '👴';
+    if (category.includes('Arts')) return '🎨';
+    if (category.includes('Food')) return '🍽️';
+    if (category.includes('Sports')) return '🏃';
+    return '🌱';
   };
+
+  // Format date for display
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return 'TBD';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        background: '#f8f9fa',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
+          <h2 style={{ color: '#666' }}>Loading project details...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !project) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        background: '#f8f9fa',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>❌</div>
+          <h2 style={{ color: '#666', marginBottom: '1rem' }}>Project Not Found</h2>
+          <p style={{ color: '#999', marginBottom: '2rem' }}>{error || 'The project you are looking for does not exist.'}</p>
+          <button
+            onClick={() => window.location.href = '/projects'}
+            style={{
+              background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+              color: 'white',
+              border: 'none',
+              padding: '1rem 2rem',
+              borderRadius: '25px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: 'bold'
+            }}
+          >
+            Back to Projects
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ 
@@ -102,8 +212,9 @@ const ProjectDetailsPage: React.FC = () => {
           <a href="/projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Projects</a>
           {isAuthenticated && (
             <>
-              <a href="#" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
+              <a href="/my-projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
               <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Achievement</a>
+              <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Leaderboard</a>
             </>
           )}
           {isAuthenticated ? (
@@ -175,10 +286,11 @@ const ProjectDetailsPage: React.FC = () => {
           borderRadius: '15px',
           padding: '2rem',
           boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-          marginBottom: '2rem'
+          marginBottom: '2rem',
+          position: 'relative'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
-            <div style={{ fontSize: '4rem' }}>{project.icon}</div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ fontSize: '4rem' }}>{getCategoryIcon(project.category || '')}</div>
             <div style={{ flex: 1 }}>
               <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
                 {project.title}
@@ -215,12 +327,66 @@ const ProjectDetailsPage: React.FC = () => {
                   {project.spotsAvailable} spots available
                 </span>
               </div>
+              
+              {/* Description - Left side of images */}
+              <p style={{ fontSize: '1.2rem', color: '#666', marginTop: '1rem', marginBottom: '0' }}>
+                {project.description}
+              </p>
             </div>
+            
+            {/* Project Images - Right Side */}
+            {project.images && project.images.length > 0 && (
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                flexDirection: 'column',
+                alignItems: 'center',
+                minWidth: '280px',
+                marginTop: '2rem'
+              }}>
+                 {project.images.slice(0, 2).map((imageUrl: string, index: number) => (
+                  <div 
+                    key={index} 
+                    style={{
+                      position: 'relative',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      transition: 'transform 0.3s ease',
+                      cursor: 'pointer',
+                      width: '280px',
+                      height: '220px',
+                      flexShrink: 0
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    }}
+                    onClick={() => window.open(imageUrl, '_blank')}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`${project.title} - Image ${index + 1}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block'
+                      }}
+                      onError={(e) => {
+                        // Hide broken images
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          
-          <p style={{ fontSize: '1.2rem', color: '#666', marginBottom: '2rem' }}>
-            {project.description}
-          </p>
         </div>
 
         {/* Project Details Grid */}
@@ -242,19 +408,16 @@ const ProjectDetailsPage: React.FC = () => {
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <strong style={{ color: '#333' }}>Date:</strong> {project.date}
+                <strong style={{ color: '#333' }}>Date:</strong> {formatDate(project.startDate)}
               </div>
               <div>
-                <strong style={{ color: '#333' }}>Time:</strong> {project.time}
-              </div>
-              <div>
-                <strong style={{ color: '#333' }}>Duration:</strong> {project.duration}
+                <strong style={{ color: '#333' }}>Duration:</strong> {project.duration} hours
               </div>
               <div>
                 <strong style={{ color: '#333' }}>Location:</strong> {project.location}
               </div>
               <div>
-                <strong style={{ color: '#333' }}>Address:</strong> {project.address}
+                <strong style={{ color: '#333' }}>Spots Available:</strong> {project.spotsAvailable} of {project.maxVolunteers} total
               </div>
             </div>
           </div>
@@ -271,13 +434,13 @@ const ProjectDetailsPage: React.FC = () => {
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <strong style={{ color: '#333' }}>Age:</strong> {project.ageRequirement}
-              </div>
-              <div>
                 <strong style={{ color: '#333' }}>Requirements:</strong> {project.requirements}
               </div>
               <div>
-                <strong style={{ color: '#333' }}>What to Bring:</strong> {project.whatToBring}
+                <strong style={{ color: '#333' }}>Difficulty:</strong> {project.difficulty}
+              </div>
+              <div>
+                <strong style={{ color: '#333' }}>Category:</strong> {project.category}
               </div>
             </div>
           </div>
@@ -290,13 +453,13 @@ const ProjectDetailsPage: React.FC = () => {
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
           }}>
             <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#2E7D32' }}>
-              🎯 What to Expect
+              🎯 Project Details
             </h3>
             <p style={{ color: '#666', marginBottom: '1rem' }}>
-              {project.whatToExpect}
+              {project.description}
             </p>
             <p style={{ color: '#666', fontWeight: 'bold' }}>
-              {project.impact}
+              Make a difference in your community through this {project.category.toLowerCase()} project!
             </p>
           </div>
 
@@ -308,27 +471,22 @@ const ProjectDetailsPage: React.FC = () => {
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
           }}>
             <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#2E7D32' }}>
-              🎓 Skills You'll Use
+              📊 Project Info
             </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
-              {project.skills.map((skill, index) => (
-                <span key={index} style={{
-                  background: '#E8F5E8',
-                  color: '#2E7D32',
-                  padding: '0.3rem 0.8rem',
-                  borderRadius: '15px',
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold'
-                }}>
-                  {skill}
-                </span>
-              ))}
-            </div>
-            <div>
-              <strong style={{ color: '#333' }}>Contact:</strong>
-              <p style={{ color: '#666', marginTop: '0.5rem' }}>
-                {project.contact}
-              </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <strong style={{ color: '#333' }}>Status:</strong> {project.status}
+              </div>
+              <div>
+             <strong style={{ color: '#333' }}>Created by:</strong> {
+               creator
+                 ? `${creator.firstName} ${creator.lastName}`
+                 : 'Community Member'
+             }
+              </div>
+              <div>
+                <strong style={{ color: '#333' }}>Project ID:</strong> {project.id}
+              </div>
             </div>
           </div>
         </div>
@@ -345,7 +503,7 @@ const ProjectDetailsPage: React.FC = () => {
             Ready to Make a Difference?
           </h3>
           <p style={{ color: '#666', marginBottom: '2rem' }}>
-            Join this project and help elementary students succeed in their studies!
+            Join this {project.category.toLowerCase()} project and make a positive impact in your community!
           </p>
           <button
             onClick={handleJoinProject}

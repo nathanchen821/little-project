@@ -174,7 +174,7 @@ function Router() {
     return <ProjectSubmissionPage />;
   }
   
-  if (path === '/project/elementary-tutoring' || path === '/project/elementary-tutoring/') {
+  if (path.startsWith('/project/')) {
     return <ProjectDetailsPage />;
   }
   
