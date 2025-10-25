@@ -1,14 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { getCurrentUser, signOut as amplifySignOut } from 'aws-amplify/auth';
+import { getLeaderboard, getLeaderboardStats, type LeaderboardEntry } from './services/leaderboardService';
 
 const LeaderboardPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('hours');
   const [timeframe, setTimeframe] = useState('all-time');
   const [user, setUser] = useState<any>(null);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [stats, setStats] = useState({
+    totalVolunteers: 0,
+    totalSchools: 0,
+    totalHours: 0,
+    totalProjects: 0,
+    totalPoints: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuthState();
+    loadLeaderboardData();
   }, []);
+
+  useEffect(() => {
+    loadLeaderboardData();
+  }, [activeCategory]);
 
   const checkAuthState = async () => {
     try {
@@ -21,6 +37,30 @@ const LeaderboardPage: React.FC = () => {
     }
   };
 
+  const loadLeaderboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Load leaderboard data for current category
+      const leaderboard = await getLeaderboard(activeCategory as 'hours' | 'projects' | 'streak' | 'points');
+      setLeaderboardData(leaderboard);
+
+      // Load school competition data (commented out since School Competition is hidden)
+      // const schools = await getSchoolCompetition();
+      // setSchoolData(schools);
+
+      // Load statistics
+      const leaderboardStats = await getLeaderboardStats();
+      setStats(leaderboardStats);
+    } catch (error) {
+      console.error('Error loading leaderboard data:', error);
+      setError('Failed to load leaderboard data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignOutClick = async () => {
     try {
       await amplifySignOut();
@@ -30,57 +70,6 @@ const LeaderboardPage: React.FC = () => {
     }
   };
 
-  // Mock leaderboard data - in a real app, this would come from your backend
-  const leaderboardData = {
-    hours: [
-      { rank: 1, name: "Sarah Chen", school: "Blacksburg High", hours: 67.5, avatar: "👩‍🎓", streak: 8, points: 1350, badge: "🏆" },
-      { rank: 2, name: "Marcus Johnson", school: "Christiansburg High", hours: 58.2, avatar: "👨‍🎓", streak: 5, points: 1164, badge: "🥇" },
-      { rank: 3, name: "Emily Rodriguez", school: "Blacksburg High", hours: 52.8, avatar: "👩‍🎓", streak: 6, points: 1056, badge: "🥈" },
-      { rank: 4, name: "David Kim", school: "Christiansburg High", hours: 48.3, avatar: "👨‍🎓", streak: 3, points: 966, badge: "🥉" },
-      { rank: 5, name: "Jessica Wang", school: "Blacksburg High", hours: 45.7, avatar: "👩‍🎓", streak: 4, points: 914, badge: "⭐" },
-      { rank: 6, name: "Alex Thompson", school: "Christiansburg High", hours: 42.1, avatar: "👨‍🎓", streak: 2, points: 842, badge: "⭐" },
-      { rank: 7, name: "Maya Patel", school: "Blacksburg High", hours: 38.9, avatar: "👩‍🎓", streak: 7, points: 778, badge: "⭐" },
-      { rank: 8, name: "Ryan Davis", school: "Christiansburg High", hours: 35.6, avatar: "👨‍🎓", streak: 1, points: 712, badge: "⭐" },
-      { rank: 9, name: "Sofia Martinez", school: "Blacksburg High", hours: 32.4, avatar: "👩‍🎓", streak: 3, points: 648, badge: "⭐" },
-      { rank: 10, name: "Tyler Wilson", school: "Christiansburg High", hours: 29.8, avatar: "👨‍🎓", streak: 2, points: 596, badge: "⭐" }
-    ],
-    projects: [
-      { rank: 1, name: "Sarah Chen", school: "Blacksburg High", projects: 12, avatar: "👩‍🎓", streak: 8, points: 1350, badge: "🏆" },
-      { rank: 2, name: "Marcus Johnson", school: "Christiansburg High", projects: 10, avatar: "👨‍🎓", streak: 5, points: 1164, badge: "🥇" },
-      { rank: 3, name: "Emily Rodriguez", school: "Blacksburg High", projects: 9, avatar: "👩‍🎓", streak: 6, points: 1056, badge: "🥈" },
-      { rank: 4, name: "David Kim", school: "Christiansburg High", projects: 8, avatar: "👨‍🎓", streak: 3, points: 966, badge: "🥉" },
-      { rank: 5, name: "Jessica Wang", school: "Blacksburg High", projects: 7, avatar: "👩‍🎓", streak: 4, points: 914, badge: "⭐" },
-      { rank: 6, name: "Alex Thompson", school: "Christiansburg High", projects: 6, avatar: "👨‍🎓", streak: 2, points: 842, badge: "⭐" },
-      { rank: 7, name: "Maya Patel", school: "Blacksburg High", projects: 6, avatar: "👩‍🎓", streak: 7, points: 778, badge: "⭐" },
-      { rank: 8, name: "Ryan Davis", school: "Christiansburg High", projects: 5, avatar: "👨‍🎓", streak: 1, points: 712, badge: "⭐" },
-      { rank: 9, name: "Sofia Martinez", school: "Blacksburg High", projects: 5, avatar: "👩‍🎓", streak: 3, points: 648, badge: "⭐" },
-      { rank: 10, name: "Tyler Wilson", school: "Christiansburg High", projects: 4, avatar: "👨‍🎓", streak: 2, points: 596, badge: "⭐" }
-    ],
-    streak: [
-      { rank: 1, name: "Maya Patel", school: "Blacksburg High", streak: 7, avatar: "👩‍🎓", hours: 38.9, points: 778, badge: "🔥" },
-      { rank: 2, name: "Sarah Chen", school: "Blacksburg High", streak: 8, avatar: "👩‍🎓", hours: 67.5, points: 1350, badge: "🏆" },
-      { rank: 3, name: "Emily Rodriguez", school: "Blacksburg High", streak: 6, avatar: "👩‍🎓", hours: 52.8, points: 1056, badge: "🥈" },
-      { rank: 4, name: "Jessica Wang", school: "Blacksburg High", streak: 4, avatar: "👩‍🎓", hours: 45.7, points: 914, badge: "⭐" },
-      { rank: 5, name: "Marcus Johnson", school: "Christiansburg High", streak: 5, avatar: "👨‍🎓", hours: 58.2, points: 1164, badge: "🥇" },
-      { rank: 6, name: "Sofia Martinez", school: "Blacksburg High", streak: 3, avatar: "👩‍🎓", hours: 32.4, points: 648, badge: "⭐" },
-      { rank: 7, name: "David Kim", school: "Christiansburg High", streak: 3, avatar: "👨‍🎓", hours: 48.3, points: 966, badge: "🥉" },
-      { rank: 8, name: "Tyler Wilson", school: "Christiansburg High", streak: 2, avatar: "👨‍🎓", hours: 29.8, points: 596, badge: "⭐" },
-      { rank: 9, name: "Alex Thompson", school: "Christiansburg High", streak: 2, avatar: "👨‍🎓", hours: 42.1, points: 842, badge: "⭐" },
-      { rank: 10, name: "Ryan Davis", school: "Christiansburg High", streak: 1, avatar: "👨‍🎓", hours: 35.6, points: 712, badge: "⭐" }
-    ],
-    points: [
-      { rank: 1, name: "Sarah Chen", school: "Blacksburg High", points: 1350, avatar: "👩‍🎓", hours: 67.5, streak: 8, badge: "🏆" },
-      { rank: 2, name: "Marcus Johnson", school: "Christiansburg High", points: 1164, avatar: "👨‍🎓", hours: 58.2, streak: 5, badge: "🥇" },
-      { rank: 3, name: "Emily Rodriguez", school: "Blacksburg High", points: 1056, avatar: "👩‍🎓", hours: 52.8, streak: 6, badge: "🥈" },
-      { rank: 4, name: "David Kim", school: "Christiansburg High", points: 966, avatar: "👨‍🎓", hours: 48.3, streak: 3, badge: "🥉" },
-      { rank: 5, name: "Jessica Wang", school: "Blacksburg High", points: 914, avatar: "👩‍🎓", hours: 45.7, streak: 4, badge: "⭐" },
-      { rank: 6, name: "Alex Thompson", school: "Christiansburg High", points: 842, avatar: "👨‍🎓", hours: 42.1, streak: 2, badge: "⭐" },
-      { rank: 7, name: "Maya Patel", school: "Blacksburg High", points: 778, avatar: "👩‍🎓", hours: 38.9, streak: 7, badge: "⭐" },
-      { rank: 8, name: "Ryan Davis", school: "Christiansburg High", points: 712, avatar: "👨‍🎓", hours: 35.6, streak: 1, badge: "⭐" },
-      { rank: 9, name: "Sofia Martinez", school: "Blacksburg High", points: 648, avatar: "👩‍🎓", hours: 32.4, streak: 3, badge: "⭐" },
-      { rank: 10, name: "Tyler Wilson", school: "Christiansburg High", points: 596, avatar: "👨‍🎓", hours: 29.8, streak: 2, badge: "⭐" }
-    ]
-  };
 
   const categories = [
     { id: 'hours', label: 'Hours', icon: '⏱️' },
@@ -95,7 +84,7 @@ const LeaderboardPage: React.FC = () => {
     { id: 'week', label: 'This Week' }
   ];
 
-  const currentData = leaderboardData[activeCategory as keyof typeof leaderboardData];
+  const currentData = leaderboardData;
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return '🥇';
@@ -278,14 +267,61 @@ const LeaderboardPage: React.FC = () => {
           ))}
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <section style={{
+            background: 'white',
+            borderRadius: '15px',
+            padding: '2rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+            marginBottom: '2rem',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
+            <h2 style={{ color: '#666' }}>Loading leaderboard...</h2>
+          </section>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <section style={{
+            background: 'white',
+            borderRadius: '15px',
+            padding: '2rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+            marginBottom: '2rem',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>❌</div>
+            <h2 style={{ color: '#ef4444', marginBottom: '1rem' }}>Error Loading Leaderboard</h2>
+            <p style={{ color: '#666', marginBottom: '1rem' }}>{error}</p>
+            <button
+              onClick={loadLeaderboardData}
+              style={{
+                background: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                padding: '0.8rem 1.5rem',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '500'
+              }}
+            >
+              Try Again
+            </button>
+          </section>
+        )}
+
         {/* Leaderboard */}
-        <section style={{
-          background: 'white',
-          borderRadius: '15px',
-          padding: '2rem',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-          marginBottom: '2rem'
-        }}>
+        {!loading && !error && (
+          <section style={{
+            background: 'white',
+            borderRadius: '15px',
+            padding: '2rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+            marginBottom: '2rem'
+          }}>
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -298,13 +334,26 @@ const LeaderboardPage: React.FC = () => {
               Top Volunteers - {categories.find(c => c.id === activeCategory)?.label}
             </h2>
             <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', color: '#666' }}>
-              <span>📊 {currentData.length} volunteers</span>
-              <span>🏫 2 schools</span>
+              <span>📊 {stats.totalVolunteers} volunteers</span>
+              <span>🏫 {stats.totalSchools} schools</span>
             </div>
           </div>
 
+          {/* Empty State */}
+          {currentData.length === 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: '3rem',
+              color: '#666'
+            }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+              <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>No Data Available</h3>
+              <p>No volunteers found for this category. Be the first to volunteer!</p>
+            </div>
+          )}
+
           {/* Top 3 Podium */}
-          {currentData.slice(0, 3).map((person, index) => (
+          {currentData.length > 0 && currentData.slice(0, 3).map((person, index) => (
             <div key={person.rank} style={{
               display: 'flex',
               alignItems: 'center',
@@ -339,15 +388,15 @@ const LeaderboardPage: React.FC = () => {
                   {person.school}
                 </p>
                 <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
-                  <span>🔥 {person.streak} week streak</span>
+                  <span>🔥 {person.currentStreak} week streak</span>
                   <span>⭐ {person.points} points</span>
                 </div>
               </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                    {activeCategory === 'hours' ? `${(person as any).hours}h` :
-                     activeCategory === 'projects' ? `${(person as any).projects}` :
-                     activeCategory === 'streak' ? `${person.streak}w` :
+                    {activeCategory === 'hours' ? `${person.totalHours}h` :
+                     activeCategory === 'projects' ? `${person.totalProjects}` :
+                     activeCategory === 'streak' ? `${person.currentStreak}w` :
                      `${person.points}`}
                   </div>
                   <div style={{ fontSize: '1.5rem' }}>
@@ -358,8 +407,9 @@ const LeaderboardPage: React.FC = () => {
           ))}
 
           {/* Rest of the leaderboard */}
-          <div style={{ marginTop: '2rem' }}>
-            {currentData.slice(3).map((person) => (
+          {currentData.length > 3 && (
+            <div style={{ marginTop: '2rem' }}>
+              {currentData.slice(3).map((person) => (
               <div key={person.rank} style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -402,16 +452,16 @@ const LeaderboardPage: React.FC = () => {
                     {person.school}
                   </p>
                   <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#666' }}>
-                    <span>🔥 {person.streak}w</span>
+                    <span>🔥 {person.currentStreak}w</span>
                     <span>⭐ {person.points}p</span>
-                    <span>⏱️ {(person as any).hours || (person as any).projects || 0}h</span>
+                    <span>⏱️ {person.totalHours}h</span>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50' }}>
-                    {activeCategory === 'hours' ? `${(person as any).hours}h` :
-                     activeCategory === 'projects' ? `${(person as any).projects}` :
-                     activeCategory === 'streak' ? `${person.streak}w` :
+                    {activeCategory === 'hours' ? `${person.totalHours}h` :
+                     activeCategory === 'projects' ? `${person.totalProjects}` :
+                     activeCategory === 'streak' ? `${person.currentStreak}w` :
                      `${person.points}`}
                   </div>
                   <div style={{ fontSize: '1.2rem' }}>
@@ -420,10 +470,13 @@ const LeaderboardPage: React.FC = () => {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </section>
+        )}
 
-        {/* School Competition */}
+        {/* School Competition - Hidden for now */}
+        {/* 
         <section style={{
           background: 'white',
           borderRadius: '15px',
@@ -439,44 +492,35 @@ const LeaderboardPage: React.FC = () => {
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             gap: '2rem'
           }}>
-            <div style={{
-              background: 'linear-gradient(135deg, #4CAF50, #45a049)',
-              color: 'white',
-              padding: '2rem',
-              borderRadius: '15px',
-              textAlign: 'center',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
-              <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Blacksburg High</h3>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>2,847</div>
-              <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>Total Points</p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', fontSize: '0.8rem' }}>
-                <span>👥 15 volunteers</span>
-                <span>⏱️ 234 hours</span>
-                <span>📋 45 projects</span>
+            {schoolData.map((school, index) => (
+              <div key={school.school} style={{
+                background: index === 0 ? 'linear-gradient(135deg, #4CAF50, #45a049)' :
+                           index === 1 ? 'linear-gradient(135deg, #2196F3, #1976D2)' :
+                           'linear-gradient(135deg, #9C27B0, #7B1FA2)',
+                color: 'white',
+                padding: '2rem',
+                borderRadius: '15px',
+                textAlign: 'center',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                  {index === 0 ? '🏆' : index === 1 ? '🥈' : '🥉'}
+                </div>
+                <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{school.school}</h3>
+                <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                  {school.totalPoints.toLocaleString()}
+                </div>
+                <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>Total Points</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', fontSize: '0.8rem' }}>
+                  <span>👥 {school.volunteers} volunteers</span>
+                  <span>⏱️ {school.totalHours} hours</span>
+                  <span>📋 {school.totalProjects} projects</span>
+                </div>
               </div>
-            </div>
-            <div style={{
-              background: 'linear-gradient(135deg, #2196F3, #1976D2)',
-              color: 'white',
-              padding: '2rem',
-              borderRadius: '15px',
-              textAlign: 'center',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🥈</div>
-              <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Christiansburg High</h3>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>2,156</div>
-              <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>Total Points</p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', fontSize: '0.8rem' }}>
-                <span>👥 12 volunteers</span>
-                <span>⏱️ 189 hours</span>
-                <span>📋 38 projects</span>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
+        */}
 
         {/* Weekly Challenges */}
         <section style={{
@@ -573,3 +617,4 @@ const LeaderboardPage: React.FC = () => {
 };
 
 export default LeaderboardPage;
+
