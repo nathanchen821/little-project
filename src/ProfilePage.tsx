@@ -439,8 +439,8 @@ const ProfilePage: React.FC = () => {
           {[
             { id: 'overview', label: 'Overview', icon: '📊' },
             { id: 'achievements', label: 'Achievements', icon: '🏆' },
-            { id: 'social', label: 'Social', icon: '👥' },
-            { id: 'stories', label: 'Stories & Photos', icon: '📸' },
+            // { id: 'social', label: 'Social', icon: '👥' }, // Hidden until implementation
+            // { id: 'stories', label: 'Stories & Photos', icon: '📸' }, // Hidden until implementation
             { id: 'trophies', label: 'Trophies', icon: '🏅' },
             { id: 'challenges', label: 'Challenges', icon: '🎯' }
           ].map(tab => (
@@ -801,8 +801,8 @@ const ProfilePage: React.FC = () => {
           </section>
         )}
 
-        {/* Stories Tab */}
-        {activeTab === 'stories' && (
+        {/* Stories Tab - Hidden until implementation */}
+        {false && activeTab === 'stories' && (
           <section>
             <h2 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', color: '#2E7D32' }}>
               📸 Stories & Photos
@@ -850,8 +850,8 @@ const ProfilePage: React.FC = () => {
           </section>
         )}
 
-        {/* Social Tab */}
-        {activeTab === 'social' && (
+        {/* Social Tab - Hidden until implementation */}
+        {false && activeTab === 'social' && (
           <section>
             <h2 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', color: '#2E7D32' }}>
               👥 Social & Friends
