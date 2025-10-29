@@ -11,6 +11,7 @@ import LeaderboardPage from "./LeaderboardPage.tsx";
 import MyProjectsPage from "./MyProjectsPage.tsx";
 import AdminDashboard from "./AdminDashboard.tsx";
 import FAQPage from "./FAQPage.tsx";
+import ResumePage from "./ResumePage.tsx";
 import "./index.css";
 import '@aws-amplify/ui-react/styles.css';
 import { Amplify } from "aws-amplify";
@@ -193,6 +194,10 @@ function Router() {
   
   if (path === '/faq' || path === '/faq/') {
     return <FAQPage />;
+  }
+  
+  if (path === '/resume' || path === '/resume/') {
+    return <ResumePage />;
   }
   
   // Default to landing page for all other paths

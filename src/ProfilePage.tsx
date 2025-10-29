@@ -316,7 +316,7 @@ const ProfilePage: React.FC = () => {
           <a href="/" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Home</a>
           <a href="/projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Projects</a>
               <a href="/my-projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Projects</a>
-          <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>My Achievement</a>
+          <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>My Profile</a>
           <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Leaderboard</a>
           <a href="/faq" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>FAQ</a>
           <button
@@ -356,7 +356,7 @@ const ProfilePage: React.FC = () => {
             marginBottom: '1rem',
             color: '#2E7D32'
           }}>
-            My Achievement
+            My Profile
           </h1>
           <p style={{
             fontSize: '1.2rem',
@@ -403,28 +403,40 @@ const ProfilePage: React.FC = () => {
                   "{userProfile.bio}"
                 </p>
               )}
-              <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#666' }}>
-                <span>⏱️ {userProfile.totalHours} hours</span>
-                <span>📋 {userProfile.totalProjects} projects</span>
-                <span>⭐ {userProfile.points} points</span>
-                <span>🔥 {userProfile.currentStreak} week streak</span>
-              </div>
+              {/* Removed duplicate mini-stats row under grade to avoid duplication */}
             </div>
-            <button 
-              onClick={() => window.location.href = '/complete-profile'}
-              style={{
-                background: 'linear-gradient(135deg, #4CAF50, #45a049)',
-                color: 'white',
-                border: 'none',
-                padding: '0.8rem 1.5rem',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                fontWeight: '500'
-              }}
-            >
-              ✏️ Edit Profile
-            </button>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => window.location.href = '/complete-profile'}
+                style={{
+                  background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.8rem 1.5rem',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '500'
+                }}
+              >
+                ✏️ Edit Profile
+              </button>
+              <button 
+                onClick={() => window.location.href = '/resume'}
+                style={{
+                  background: 'linear-gradient(135deg, #2196F3, #1976D2)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.8rem 1.5rem',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '500'
+                }}
+              >
+                📄 Create Resume
+              </button>
+            </div>
           </div>
         </section>
 
@@ -511,13 +523,13 @@ const ProfilePage: React.FC = () => {
                     <small style={{ color: '#666' }}>{100 - (userProfile.points % 100)} points to next level</small>
                   </div>
                   <div>
-                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🏅</div>
+                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>⭐</div>
                     <h3 style={{ fontSize: '2rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                      --
+                      {userProfile.points}
                     </h3>
-                    <p style={{ color: '#666', marginBottom: '1rem' }}>Overall Ranking</p>
+                    <p style={{ color: '#666', marginBottom: '1rem' }}>Points</p>
                     <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                      Check leaderboard
+                      10 points per hour
                     </div>
                   </div>
                   <div>

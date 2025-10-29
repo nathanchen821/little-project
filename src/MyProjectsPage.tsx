@@ -30,9 +30,10 @@ const MyProjectsPage: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [mySubmissions, setMySubmissions] = useState<Project[]>([]);
   const [myJoinedProjects, setMyJoinedProjects] = useState<Project[]>([]);
+  const [myCompletedProjects, setMyCompletedProjects] = useState<Project[]>([]);
   const [volunteerActivities, setVolunteerActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'submitted' | 'joined'>('joined');
+  const [activeTab, setActiveTab] = useState<'submitted' | 'joined' | 'completed'>('joined');
   const [unjoinLoading, setUnjoinLoading] = useState<string | null>(null);
   const [completingProject, setCompletingProject] = useState<string | null>(null);
   const [loggingHours, setLoggingHours] = useState<string | null>(null);
@@ -114,6 +115,7 @@ const MyProjectsPage: React.FC = () => {
       
       if (!volunteerActivities || volunteerActivities.length === 0) {
         setMyJoinedProjects([]);
+        setMyCompletedProjects([]);
         setVolunteerActivities([]);
         return;
       }
@@ -121,23 +123,39 @@ const MyProjectsPage: React.FC = () => {
       // Store volunteer activities for later use
       setVolunteerActivities(volunteerActivities);
       
+      // Separate joined and completed activities
+      const joinedActivities = volunteerActivities.filter(activity => activity.status !== 'Completed');
+      const completedActivities = volunteerActivities.filter(activity => activity.status === 'Completed');
+      
       // Get project IDs from volunteer activities
-      const projectIds = volunteerActivities.map(activity => activity.projectId);
+      const joinedProjectIds = joinedActivities.map(activity => activity.projectId);
+      const completedProjectIds = completedActivities.map(activity => activity.projectId);
       
       // Fetch project details for joined projects
       const { data: allProjects } = await client.models.Project.list();
-      const joinedProjects = allProjects?.filter(p => projectIds.includes(p.id)) || [];
+      const joinedProjects = allProjects?.filter(p => joinedProjectIds.includes(p.id)) || [];
+      const completedProjects = allProjects?.filter(p => completedProjectIds.includes(p.id)) || [];
       
-      // Sort by join date (newest first)
+      // Sort joined projects by join date (newest first)
       const sortedJoinedProjects = joinedProjects.sort((a, b) => {
-        const activityA = volunteerActivities.find(va => va.projectId === a.id);
-        const activityB = volunteerActivities.find(va => va.projectId === b.id);
+        const activityA = joinedActivities.find(va => va.projectId === a.id);
+        const activityB = joinedActivities.find(va => va.projectId === b.id);
         if (!activityA || !activityB) return 0;
         return new Date(activityB.joinedAt || activityB.createdAt).getTime() - 
                new Date(activityA.joinedAt || activityA.createdAt).getTime();
       });
       
+      // Sort completed projects by completion date (newest first)
+      const sortedCompletedProjects = completedProjects.sort((a, b) => {
+        const activityA = completedActivities.find(va => va.projectId === a.id);
+        const activityB = completedActivities.find(va => va.projectId === b.id);
+        if (!activityA || !activityB) return 0;
+        return new Date(activityB.completedAt || activityB.updatedAt).getTime() - 
+               new Date(activityA.completedAt || activityA.updatedAt).getTime();
+      });
+      
       setMyJoinedProjects(sortedJoinedProjects as Project[]);
+      setMyCompletedProjects(sortedCompletedProjects as Project[]);
     } catch (error) {
       console.error('Error loading joined projects:', error);
     }
@@ -585,7 +603,7 @@ const MyProjectsPage: React.FC = () => {
           {isAuthenticated && (
             <>
               <a href="/my-projects" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>My Projects</a>
-              <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Achievement</a>
+              <a href="/profile" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>My Profile</a>
               <a href="/leaderboard" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Leaderboard</a>
               {isAdmin && (
                 <a href="/admin" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
@@ -743,6 +761,23 @@ const MyProjectsPage: React.FC = () => {
           >
             📝 Submitted ({mySubmissions.length})
           </button>
+          <button
+            onClick={() => setActiveTab('completed')}
+            style={{
+              width: '200px',
+              padding: '0.75rem 1.5rem',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600',
+              background: activeTab === 'completed' ? 'linear-gradient(135deg, #4CAF50, #45a049)' : 'transparent',
+              color: activeTab === 'completed' ? 'white' : '#718096',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            ✅ Completed ({myCompletedProjects.length})
+          </button>
         </div>
 
         {/* Loading State */}
@@ -761,7 +796,7 @@ const MyProjectsPage: React.FC = () => {
         )}
 
         {/* Empty State */}
-        {!loading && ((activeTab === 'submitted' && mySubmissions.length === 0) || (activeTab === 'joined' && myJoinedProjects.length === 0)) && (
+        {!loading && ((activeTab === 'submitted' && mySubmissions.length === 0) || (activeTab === 'joined' && myJoinedProjects.length === 0) || (activeTab === 'completed' && myCompletedProjects.length === 0)) && (
           <div style={{
             textAlign: 'center',
             padding: '3rem',
@@ -774,7 +809,7 @@ const MyProjectsPage: React.FC = () => {
               fontSize: '3rem',
               marginBottom: '1rem'
             }}>
-              {activeTab === 'submitted' ? '📝' : '🤝'}
+              {activeTab === 'submitted' ? '📝' : activeTab === 'joined' ? '🤝' : '✅'}
             </div>
             <h3 style={{
               fontSize: '1.5rem',
@@ -782,7 +817,7 @@ const MyProjectsPage: React.FC = () => {
               color: '#2d3748',
               marginBottom: '0.5rem'
             }}>
-              {activeTab === 'submitted' ? 'No Submitted Projects Yet' : 'No Joined Projects Yet'}
+              {activeTab === 'submitted' ? 'No Submitted Projects Yet' : activeTab === 'joined' ? 'No Joined Projects Yet' : 'No Completed Projects Yet'}
             </h3>
             <p style={{
               color: '#718096',
@@ -790,7 +825,9 @@ const MyProjectsPage: React.FC = () => {
             }}>
               {activeTab === 'submitted' 
                 ? "You haven't submitted any projects yet. Start making a difference!"
-                : "You haven't joined any projects yet. Browse available projects to get started!"
+                : activeTab === 'joined'
+                ? "You haven't joined any projects yet. Browse available projects to get started!"
+                : "You haven't completed any projects yet. Join projects and complete them to see them here!"
               }
             </p>
             <button
@@ -807,27 +844,27 @@ const MyProjectsPage: React.FC = () => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
               }}
             >
-              {activeTab === 'submitted' ? 'Submit Your First Project' : 'Browse Projects'}
+              {activeTab === 'submitted' ? 'Submit Your First Project' : activeTab === 'joined' ? 'Browse Projects' : 'Browse Projects'}
             </button>
           </div>
         )}
 
         {/* Projects List */}
-        {!loading && ((activeTab === 'submitted' && mySubmissions.length > 0) || (activeTab === 'joined' && myJoinedProjects.length > 0)) && (
+        {!loading && ((activeTab === 'submitted' && mySubmissions.length > 0) || (activeTab === 'joined' && myJoinedProjects.length > 0) || (activeTab === 'completed' && myCompletedProjects.length > 0)) && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '1.5rem',
             marginBottom: '3rem'
           }}>
-            {(activeTab === 'submitted' ? mySubmissions : myJoinedProjects).map((project) => {
+            {(activeTab === 'submitted' ? mySubmissions : activeTab === 'joined' ? myJoinedProjects : myCompletedProjects).map((project) => {
               const statusBadge = getStatusBadge(project.status, project.isApproved);
               const locationStr = project.city && project.state 
                 ? `${project.city}, ${project.state}`
                 : project.location || 'Location TBD';
               
-              // Get volunteer activity for joined projects
-              const volunteerActivity = activeTab === 'joined' 
+              // Get volunteer activity for joined and completed projects
+              const volunteerActivity = (activeTab === 'joined' || activeTab === 'completed')
                 ? volunteerActivities.find(va => va.projectId === project.id)
                 : null;
               
@@ -1026,8 +1063,8 @@ const MyProjectsPage: React.FC = () => {
                       </p>
                     </div>
                     
-                    {/* Volunteer Activity Information - Only for joined projects */}
-                    {activeTab === 'joined' && volunteerActivity && (
+                    {/* Volunteer Activity Information - Only for joined and completed projects */}
+                    {(activeTab === 'joined' || activeTab === 'completed') && volunteerActivity && (
                       <>
                         <div>
                           <span style={{
@@ -1138,7 +1175,53 @@ const MyProjectsPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Volunteer Activity Actions - Only for joined projects */}
+                  {/* Completion Status - Only for completed projects */}
+                  {activeTab === 'completed' && volunteerActivity && (
+                    <div style={{
+                      paddingTop: '1rem',
+                      borderTop: '1px solid #e2e8f0',
+                      background: 'linear-gradient(135deg, #E8F5E8, #E3F2FD)',
+                      borderRadius: '8px',
+                      padding: '1rem',
+                      marginTop: '1rem'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginBottom: '0.5rem'
+                      }}>
+                        <span style={{ fontSize: '1.2rem' }}>✅</span>
+                        <h4 style={{
+                          margin: 0,
+                          color: '#2E7D32',
+                          fontSize: '1rem',
+                          fontWeight: '600'
+                        }}>
+                          Project Completed
+                        </h4>
+                      </div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                        gap: '1rem',
+                        fontSize: '0.9rem',
+                        color: '#666'
+                      }}>
+                        <div>
+                          <strong>Hours Logged:</strong> {volunteerActivity.hoursLogged || 0}
+                        </div>
+                        <div>
+                          <strong>Completed:</strong> {volunteerActivity.completedAt ? formatDate(volunteerActivity.completedAt) : 'N/A'}
+                        </div>
+                        <div>
+                          <strong>Points Earned:</strong> {((volunteerActivity.hoursLogged || 0) * 10).toFixed(0)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Volunteer Activity Actions - Only for joined projects (not completed) */}
                   {activeTab === 'joined' && volunteerActivity && (
                     <div style={{
                       paddingTop: '1rem',
@@ -1308,7 +1391,7 @@ const MyProjectsPage: React.FC = () => {
         )}
 
         {/* Summary Section */}
-        {!loading && ((activeTab === 'submitted' && mySubmissions.length > 0) || (activeTab === 'joined' && myJoinedProjects.length > 0)) && (
+        {!loading && ((activeTab === 'submitted' && mySubmissions.length > 0) || (activeTab === 'joined' && myJoinedProjects.length > 0) || (activeTab === 'completed' && myCompletedProjects.length > 0)) && (
           <div style={{
             background: 'white',
             borderRadius: '12px',
@@ -1322,7 +1405,7 @@ const MyProjectsPage: React.FC = () => {
               color: '#2d3748',
               marginBottom: '1.5rem'
             }}>
-              {activeTab === 'submitted' ? 'Submission Summary' : 'Participation Summary'}
+              {activeTab === 'submitted' ? 'Submission Summary' : activeTab === 'joined' ? 'Participation Summary' : 'Completion Summary'}
             </h2>
             <div style={{
               display: 'grid',
