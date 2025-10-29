@@ -119,22 +119,12 @@ The platform tracks and displays:
 - Projects by category and location
 - School participation rates
 
-## 🚀 Getting Started
+## 🔮 Future work
 
-1. **For Students**: Sign up with your school email and start browsing projects
-2. **For Project Creators**: Submit project ideas for admin approval
-3. **For Admins**: Use the admin dashboard to manage the platform
-
-## 🔮 Planned for v2
-
-- In-app and email notifications across join and approval workflows
-- Dedicated creator dashboard for efficient request and member management
-- Improved requester display (names/avatars) for clearer reviews
-- Capacity rules and waitlist flows for smoother project management
-- Cooldowns/rate-limiting to prevent repeated requests
-- Enhanced admin account management (user moderation, role updates)
-- Broader automated test coverage (unit/integration/UI)
-- Rich analytics and audit logging for key actions
-- Multi-language support and additional accessibility enhancements
+- Smarter on‑site notifications for requests and approvals
+- Enhance creator dashboard for easier request and member management
+- Expand admin tools to support user moderation and role updates
+- Add an insights dashboard with usage trends and activity summaries
+- Enable volunteer discovery with quick profile previews
 
 
