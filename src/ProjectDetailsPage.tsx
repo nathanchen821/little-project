@@ -21,6 +21,7 @@ const ProjectDetailsPage: React.FC = () => {
   const [joinRequestStatus, setJoinRequestStatus] = useState<'none' | 'pending' | 'accepted' | 'denied'>('none');
   const [isCreator, setIsCreator] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [requesterNames, setRequesterNames] = useState<Record<string, string>>({});
   
   useEffect(() => {
     checkAuthState();
@@ -171,6 +172,24 @@ const ProjectDetailsPage: React.FC = () => {
           }
         });
         setPendingRequests(requests || []);
+
+        // Load requester names for display
+        const uniqueRequesterIds = Array.from(new Set((requests || []).map((r: any) => r.requesterUserId).filter(Boolean)));
+        if (uniqueRequesterIds.length > 0) {
+          const entries = await Promise.all(uniqueRequesterIds.map(async (id: string) => {
+            try {
+              const { data: user } = await authenticatedClient.models.User.get({ id });
+              if (user) {
+                const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || id;
+                return [id, fullName] as const;
+              }
+            } catch (err) {
+              // ignore and fallback to id
+            }
+            return [id, id] as const;
+          }));
+          setRequesterNames(Object.fromEntries(entries));
+        }
       }
     } catch (e) {
       console.error('Error checking creator/requests:', e);
@@ -882,7 +901,7 @@ const ProjectDetailsPage: React.FC = () => {
                     padding: '1rem'
                   }}>
                     <div style={{ color: '#333' }}>
-                      <strong>Requester:</strong> {req.requesterUserId}
+                      <strong>Requester:</strong> {requesterNames[req.requesterUserId] || req.requesterUserId}
                       <span style={{ marginLeft: '1rem', color: '#666' }}>
                         Requested at {new Date(req.createdAt).toLocaleString()}
                       </span>

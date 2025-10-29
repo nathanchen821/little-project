@@ -357,7 +357,7 @@ const LandingPage: React.FC = () => {
           padding: '3rem',
           borderRadius: '15px',
           textAlign: 'center',
-          marginBottom: '3rem',
+          marginBottom: '1rem',
           boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
         }}>
           <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>
@@ -404,7 +404,7 @@ const LandingPage: React.FC = () => {
         color: 'white',
         textAlign: 'center',
         padding: '2rem',
-        marginTop: '3rem'
+        marginTop: '1rem'
       }}>
         <p>&copy; 2025 Project rush. Making a difference, one small act at a time.</p>
       </footer>

@@ -1,4 +1,6 @@
 # Project rush - Volunteer Management Platform
+# Project rush - Volunteer Management Platform
+🔗 Live site: https://main.d30jhxkza5tj8e.amplifyapp.com/
 
 A web platform that connects high school students with local volunteer opportunities, featuring project management, hour tracking, achievements, and leaderboards.
 
@@ -23,8 +25,8 @@ Project rush helps students find volunteer work in their community while trackin
 **Project System**
 - Browse approved volunteer projects
 - Submit new project ideas (requires admin approval)
-- Join projects and track participation
-- View project details with images and requirements
+- Request to join projects (creator approval workflow)
+- Track participation and project details with images and requirements
 - Edit or delete your submitted projects (if pending)
 
 **Volunteer Tracking**
@@ -75,7 +77,7 @@ Project rush helps students find volunteer work in their community while trackin
 1. **Sign Up**: Create an account with your school email
 2. **Complete Profile**: Add your school, grade, and interests
 3. **Browse Projects**: Look for volunteer opportunities that interest you
-4. **Join Projects**: Click "Join Project" to participate
+4. **Request to Join**: Click "Request to Join" on a project (creator approves)
 5. **Track Hours**: Log your volunteer hours as you work
 6. **Complete Projects**: Mark projects as finished when done
 7. **Earn Rewards**: Unlock achievements and climb the leaderboard
@@ -84,7 +86,7 @@ Project rush helps students find volunteer work in their community while trackin
 
 1. **Submit Project**: Click "Submit New Project" to create a volunteer opportunity
 2. **Fill Details**: Add project description, location, requirements, and images
-3. **Wait for Approval**: Admins will review and approve your project
+3. **Review Requests**: Accept or deny join requests from students
 4. **Manage Projects**: Edit or delete your projects from "My Projects"
 
 ### For Admins
@@ -108,7 +110,8 @@ Project rush helps students find volunteer work in their community while trackin
 - VolunteerActivities (participation tracking)
 - Achievements (badges and rewards)
 - Organizations (partner groups)
-- And 6 more supporting tables
+- JoinRequests (request/approval workflow)
+- And 5 more supporting tables
 
 **Key Features:**
 - Real-time data updates
@@ -123,10 +126,11 @@ Project rush helps students find volunteer work in their community while trackin
 This is a **working demo platform** with all core features implemented:
 
 ✅ **Complete User Journey**
-- Registration → Profile Setup → Browse Projects → Join Projects → Log Hours → Earn Achievements
+- Registration → Profile Setup → Browse Projects → Request to Join → Log Hours → Earn Achievements
 
-✅ **Admin Workflow**
+✅ **Admin/Creator Workflow**
 - Project Submission → Admin Review → Approval → Public Visibility
+- Join Request → Creator Accept/Deny → Membership Added
 
 ✅ **Real Data**
 - All information comes from the database
@@ -190,6 +194,17 @@ The platform tracks and displays:
 1. **For Students**: Sign up with your school email and start browsing projects
 2. **For Organizations**: Submit project ideas for admin approval
 3. **For Admins**: Use the admin dashboard to manage the platform
+
+## 🧭 Future Work
+
+- In-app and email notifications for join requests and decisions
+- Dedicated creator dashboard for managing requests and members
+- Improved requester display (resolve user IDs to names/avatars)
+- Capacity rules and waitlist flows
+- Cooldowns/rate-limiting for repeated join requests
+- Extended tests (unit/integration/UI)
+- Analytics and audit logging for key actions
+- Multi-language support and accessibility enhancements
 
 ## 📞 Support
 
