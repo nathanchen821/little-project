@@ -59,19 +59,80 @@ export async function seedAchievements() {
           target: 3
         }
       },
+      // Streak achievements
       {
-        name: "Volunteer Streak",
-        description: "Volunteer for 5 consecutive weeks",
+        name: "1-Week Streak",
+        description: "Volunteer for 1 consecutive week",
         icon: "🔥",
         category: "Consistency",
         type: "Streak",
-        points: 200,
-        badge: "volunteer-streak",
+        points: 20,
+        badge: "streak-1",
         isActive: true,
         sortOrder: 4,
         criteria: {
           type: "weekly_streak",
+          target: 1
+        }
+      },
+      {
+        name: "5-Week Streak",
+        description: "Volunteer for 5 consecutive weeks",
+        icon: "🔥",
+        category: "Consistency",
+        type: "Streak",
+        points: 100,
+        badge: "streak-5",
+        isActive: true,
+        sortOrder: 5,
+        criteria: {
+          type: "weekly_streak",
           target: 5
+        }
+      },
+      {
+        name: "10-Week Streak",
+        description: "Volunteer for 10 consecutive weeks",
+        icon: "🔥",
+        category: "Consistency",
+        type: "Streak",
+        points: 200,
+        badge: "streak-10",
+        isActive: true,
+        sortOrder: 6,
+        criteria: {
+          type: "weekly_streak",
+          target: 10
+        }
+      },
+      {
+        name: "25-Week Streak",
+        description: "Volunteer for 25 consecutive weeks",
+        icon: "🔥",
+        category: "Consistency",
+        type: "Streak",
+        points: 400,
+        badge: "streak-25",
+        isActive: true,
+        sortOrder: 7,
+        criteria: {
+          type: "weekly_streak",
+          target: 25
+        }
+      },
+      {
+        name: "52-Week Streak",
+        description: "Volunteer for 52 consecutive weeks",
+        icon: "🔥",
+        category: "Consistency",
+        type: "Streak",
+        points: 800,
+        badge: "streak-52",
+        isActive: true,
+        sortOrder: 8,
+        criteria: {
+          type: "weekly_streak",
+          target: 52
         }
       },
       {
@@ -98,7 +159,7 @@ export async function seedAchievements() {
         points: 75,
         badge: "weekend-warrior",
         isActive: true,
-        sortOrder: 6,
+        sortOrder: 20,
         criteria: {
           type: "weekend_completion",
           target: 1
@@ -113,7 +174,7 @@ export async function seedAchievements() {
         points: 125,
         badge: "team-player",
         isActive: true,
-        sortOrder: 7,
+        sortOrder: 21,
         criteria: {
           type: "team_projects",
           target: 5
@@ -128,7 +189,7 @@ export async function seedAchievements() {
         points: 25,
         badge: "early-bird",
         isActive: true,
-        sortOrder: 8,
+        sortOrder: 22,
         criteria: {
           type: "quick_start",
           target: 1
@@ -181,5 +242,38 @@ export async function checkAchievementsExist(): Promise<boolean> {
   } catch (error) {
     console.error('Error checking achievements:', error);
     return false;
+  }
+}
+
+/**
+ * Ensure streak achievements (1,5,10,25,52 weeks) exist even if other achievements already exist
+ */
+export async function ensureStreakAchievementsExists(): Promise<void> {
+  const streaks = [
+    { name: '1-Week Streak', target: 1, points: 20, badge: 'streak-1', sortOrder: 4 },
+    { name: '5-Week Streak', target: 5, points: 100, badge: 'streak-5', sortOrder: 5 },
+    { name: '10-Week Streak', target: 10, points: 200, badge: 'streak-10', sortOrder: 6 },
+    { name: '25-Week Streak', target: 25, points: 400, badge: 'streak-25', sortOrder: 7 },
+    { name: '52-Week Streak', target: 52, points: 800, badge: 'streak-52', sortOrder: 8 },
+  ];
+  for (const s of streaks) {
+    try {
+      const { data: existing } = await client.models.Achievement.list({ filter: { name: { eq: s.name } } });
+      if (existing && existing.length > 0) continue;
+      await client.models.Achievement.create({
+        name: s.name,
+        description: `Volunteer for ${s.target} consecutive week${s.target > 1 ? 's' : ''}`,
+        icon: '🔥',
+        category: 'Consistency',
+        type: 'Streak',
+        points: s.points,
+        badge: s.badge,
+        isActive: true,
+        sortOrder: s.sortOrder,
+        criteria: { type: 'weekly_streak', target: s.target }
+      });
+    } catch (e) {
+      console.error('Error ensuring streak achievement', s.name, e);
+    }
   }
 }

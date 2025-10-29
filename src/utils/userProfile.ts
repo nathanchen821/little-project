@@ -284,34 +284,13 @@ async function calculateAchievementProgress(userId: string, achievement: any) {
         break;
         
       case 'weekly_streak':
-        // Calculate consecutive weeks with volunteer activity
-        const weeklyActivity = completedActivities
-          .map(a => new Date(a.completedAt || a.joinedAt || ''))
-          .filter(date => !isNaN(date.getTime()))
-          .sort((a, b) => a.getTime() - b.getTime());
-        
-        // Group by week and count consecutive weeks
-        const weeks = new Set();
-        weeklyActivity.forEach(date => {
-          const weekStart = new Date(date);
-          weekStart.setDate(date.getDate() - date.getDay()); // Start of week
-          weeks.add(weekStart.toISOString().split('T')[0]);
-        });
-        
-        const weekArray = Array.from(weeks).sort();
-        let currentStreak = 0;
-        let maxStreak = 0;
-        
-        for (let i = 0; i < weekArray.length; i++) {
-          if (i === 0 || new Date(weekArray[i] as string).getTime() - new Date(weekArray[i-1] as string).getTime() === 7 * 24 * 60 * 60 * 1000) {
-            currentStreak++;
-            maxStreak = Math.max(maxStreak, currentStreak);
-          } else {
-            currentStreak = 1;
-          }
+        // Use only the user's currentStreak field for streak achievements
+        try {
+          const { data: user } = await client.models.User.get({ id: userId });
+          progress = (user && typeof user.currentStreak === 'number') ? user.currentStreak : 0;
+        } catch (e) {
+          progress = 0;
         }
-        
-        progress = maxStreak;
         target = criteria.target || 1;
         break;
         

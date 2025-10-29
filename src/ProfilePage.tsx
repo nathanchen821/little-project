@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { signOut as amplifySignOut } from 'aws-amplify/auth';
 import { getOrCreateUserProfile, getUserStats, isProfileComplete, getUserAchievementData, type UserProfile } from './utils/userProfile';
-import { seedAchievements, checkAchievementsExist } from './utils/seedAchievements';
+import { seedAchievements, checkAchievementsExist, ensureStreakAchievementsExists } from './utils/seedAchievements';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../amplify/data/resource';
 
@@ -38,7 +38,7 @@ const ProfilePage: React.FC = () => {
         setUserStats(stats);
 
         // Load achievements
-        await loadAchievements(profile.id);
+        await loadAchievements(profile.id, profile.currentStreak || 0);
         
         // Load recent activities
         await loadRecentActivities(profile.id);
@@ -51,7 +51,7 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const loadAchievements = async (userId: string) => {
+  const loadAchievements = async (userId: string, currentStreak: number) => {
     try {
       setAchievementsLoading(true);
       
@@ -60,9 +60,42 @@ const ProfilePage: React.FC = () => {
       if (!achievementsExist) {
         console.log('No achievements found, seeding sample achievements...');
         await seedAchievements();
+      } else {
+        // Ensure streak achievements are present even if others already exist
+        await ensureStreakAchievementsExists();
       }
       
-      const achievementData = await getUserAchievementData(userId);
+      let achievementData = await getUserAchievementData(userId);
+      
+      // If still empty, ensure streak achievements exist, then retry once
+      if (!achievementData || achievementData.length === 0) {
+        await ensureStreakAchievementsExists();
+        achievementData = await getUserAchievementData(userId);
+      }
+
+      // Final fallback: synthesize streak achievements from currentStreak so the tab isn't empty
+      if ((!achievementData || achievementData.length === 0) && (currentStreak || 0) > 0) {
+        const streaks = [1, 5, 10, 25, 52];
+        achievementData = streaks.map(target => {
+          const earned = (currentStreak || 0) >= target;
+          return {
+            id: `streak-${target}`,
+            name: `${target}-Week Streak`,
+            description: `Volunteer for ${target} consecutive week${target > 1 ? 's' : ''}`,
+            icon: '🔥',
+            category: 'Consistency',
+            type: 'Streak',
+            points: target === 1 ? 20 : target === 5 ? 100 : target === 10 ? 200 : target === 25 ? 400 : 800,
+            badge: `streak-${target}`,
+            isEarned: earned,
+            progress: Math.min(currentStreak || 0, target),
+            target,
+            completedAt: earned ? new Date().toISOString() : null,
+            status: earned ? 'Completed' : ((currentStreak || 0) > 0 ? 'In Progress' : 'Not Started')
+          };
+        });
+      }
+
       setAchievements(achievementData);
     } catch (error) {
       console.error('Error loading achievements:', error);
