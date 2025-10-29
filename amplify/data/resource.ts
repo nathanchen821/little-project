@@ -46,6 +46,8 @@ const schema = a.schema({
       leaderboardEntries: a.hasMany('Leaderboard', 'userId'),
       adminActivities: a.hasMany('AdminActivity', 'adminId'),
       userChallenges: a.hasMany('UserChallenge', 'userId'),
+      // Reciprocal for JoinRequest.requester
+      joinRequests: a.hasMany('JoinRequest', 'requesterUserId'),
     })
     .authorization(allow => [
       allow.owner(),
