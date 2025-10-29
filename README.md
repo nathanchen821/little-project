@@ -77,7 +77,7 @@ A streamlined platform for discovering local service opportunities, tracking hou
 
 ## 🛠️ Tech Stack
 
-- React (TypeScript), AWS Amplify Gen2, DynamoDB, AWS Cognito
+- React (JavaScript), AWS Amplify Gen2, DynamoDB, AWS Cognito
 - Core models: Users, Projects, VolunteerActivities, Achievements, JoinRequests
 
 ## 🔗 Navigation
