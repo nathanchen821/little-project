@@ -1,24 +1,20 @@
-# Project rush - Volunteer Management Platform
-# Project rush - Volunteer Management Platform
-🔗 Live site: https://main.d30jhxkza5tj8e.amplifyapp.com/
+# Project rush - Connecting students with community volunteer opportunities
+**Live site:** https://main.d30jhxkza5tj8e.amplifyapp.com/
 
-A web platform that connects high school students with local volunteer opportunities, featuring project management, hour tracking, achievements, and leaderboards.
+Project rush connects high school students with local volunteer opportunities in a simple, modern web app bringing discovery, hour tracking, achievements, and leaderboards together so students can easily find projects, document their impact, and showcase their service.
 
-## 🌟 What It Does
+## 🌟 Overview
 
-Project rush helps students find volunteer work in their community while tracking their impact. Students can:
-- Browse and join volunteer projects
-- Submit their own project ideas
-- Track volunteer hours and earn points
-- Unlock achievements and compete on leaderboards
-- Complete their community service requirements
+A streamlined platform for discovering local service opportunities, tracking hours, and showcasing impact with achievements and leaderboards.
 
-## 🚀 Current Features
+## 🚀 Website Features
 
-### ✅ **Working Features**
+**User Roles**
+- General user: browse and join projects, track hours, earn achievements, generate a volunteer resume
+- Website admin: review and approve projects, view platform statistics
 
 **User Management**
-- User registration and login with AWS Cognito
+- User registration and login
 - Profile creation with school, interests, and availability
 - Automatic profile completion check
 
@@ -27,7 +23,7 @@ Project rush helps students find volunteer work in their community while trackin
 - Submit new project ideas (requires admin approval)
 - Request to join projects (creator approval workflow)
 - Track participation and project details with images and requirements
-- Edit or delete your submitted projects (if pending)
+- Edit or delete the submitted projects (if pending)
 
 **Volunteer Tracking**
 - Log volunteer hours for joined projects
@@ -45,30 +41,13 @@ Project rush helps students find volunteer work in their community while trackin
 - Admin dashboard for project approval
 - Approve or reject submitted projects
 - View platform statistics
-- Manage user accounts
+
 
 **Public Access**
 - FAQ page explaining how the platform works
-- Public project browsing (no login required)
-- Platform statistics and information
+- Browse projects
+- Leaderboards and platform statistics
 
-### 🔧 **Technical Features**
-
-**Database**
-- 11 DynamoDB tables for complete data management
-- Real-time data synchronization
-- Secure user authorization
-
-**Authentication**
-- AWS Cognito integration
-- Role-based access (users vs admins)
-- Automatic profile creation
-
-**User Interface**
-- Responsive design for all devices
-- Toast notifications for user feedback
-- Loading states and error handling
-- Clean, modern interface
 
 ## 📱 How to Use
 
@@ -96,51 +75,10 @@ Project rush helps students find volunteer work in their community while trackin
 3. **Approve/Reject**: Make decisions on project submissions
 4. **View Statistics**: Monitor platform usage and activity
 
-## 🛠️ Technical Details
+## 🛠️ Tech Stack
 
-**Built With:**
-- React with TypeScript
-- AWS Amplify Gen2
-- DynamoDB for data storage
-- AWS Cognito for authentication
-
-**Database Tables:**
-- Users (profiles, stats, admin status)
-- Projects (volunteer opportunities)
-- VolunteerActivities (participation tracking)
-- Achievements (badges and rewards)
-- Organizations (partner groups)
-- JoinRequests (request/approval workflow)
-- And 5 more supporting tables
-
-**Key Features:**
-- Real-time data updates
-- Secure user authentication
-- Mobile-responsive design
-- Admin approval workflow
-- Achievement system
-- Leaderboard rankings
-
-## 🎯 Current Status
-
-This is a **working demo platform** with all core features implemented:
-
-✅ **Complete User Journey**
-- Registration → Profile Setup → Browse Projects → Request to Join → Log Hours → Earn Achievements
-
-✅ **Admin/Creator Workflow**
-- Project Submission → Admin Review → Approval → Public Visibility
-- Join Request → Creator Accept/Deny → Membership Added
-
-✅ **Real Data**
-- All information comes from the database
-- No mock data or placeholder content
-- Live statistics and leaderboards
-
-✅ **Production Ready**
-- Error handling and loading states
-- Input validation and security
-- Responsive design for all devices
+- React (TypeScript), AWS Amplify Gen2, DynamoDB, AWS Cognito
+- Core models: Users, Projects, VolunteerActivities, Achievements, JoinRequests
 
 ## 🔗 Navigation
 
@@ -181,40 +119,22 @@ The platform tracks and displays:
 - Projects by category and location
 - School participation rates
 
-## 🔒 Security & Privacy
-
-- Secure user authentication with AWS Cognito
-- Role-based access control (users vs admins)
-- Data encryption in transit and at rest
-- User privacy settings and controls
-- Secure project approval workflow
-
 ## 🚀 Getting Started
 
 1. **For Students**: Sign up with your school email and start browsing projects
-2. **For Organizations**: Submit project ideas for admin approval
+2. **For Project Creators**: Submit project ideas for admin approval
 3. **For Admins**: Use the admin dashboard to manage the platform
 
-## 🧭 Future Work
+## 🔮 Planned for v2
 
-- In-app and email notifications for join requests and decisions
-- Dedicated creator dashboard for managing requests and members
-- Improved requester display (resolve user IDs to names/avatars)
-- Capacity rules and waitlist flows
-- Cooldowns/rate-limiting for repeated join requests
-- Extended tests (unit/integration/UI)
-- Analytics and audit logging for key actions
-- Multi-language support and accessibility enhancements
+- In-app and email notifications across join and approval workflows
+- Dedicated creator dashboard for efficient request and member management
+- Improved requester display (names/avatars) for clearer reviews
+- Capacity rules and waitlist flows for smoother project management
+- Cooldowns/rate-limiting to prevent repeated requests
+- Enhanced admin account management (user moderation, role updates)
+- Broader automated test coverage (unit/integration/UI)
+- Rich analytics and audit logging for key actions
+- Multi-language support and additional accessibility enhancements
 
-## 📞 Support
 
-Check the FAQ page (`/faq`) for answers to common questions about:
-- How to create an account
-- How to track volunteer hours
-- How the approval process works
-- How achievements and points are calculated
-- How to submit projects
-
----
-
-*Project rush - Connecting students with community volunteer opportunities*
