@@ -135,7 +135,7 @@ export async function getUserStats(userId: string) {
       filter: { userId: { eq: userId } }
     });
     
-    // Fetch user's achievements
+    // Fetch user's achievements (persisted rows)
     const { data: achievements } = await client.models.UserAchievement.list({
       filter: { userId: { eq: userId } }
     });
@@ -144,13 +144,18 @@ export async function getUserStats(userId: string) {
     const completedActivities = activities?.filter(a => a.status === 'Completed') || [];
     const totalHours = completedActivities.reduce((sum, a) => sum + (a.hoursVerified || 0), 0);
     const totalProjects = new Set(completedActivities.map(a => a.projectId)).size;
-    const completedAchievements = achievements?.filter(a => a.status === 'Completed') || [];
+    // Compute earned achievements using the same logic as the Achievements tab
+    // so the "Achievements Earned" count matches what users see there.
+    let computedAchievementData = await getUserAchievementData(userId);
+    const completedAchievementsCount = (computedAchievementData && computedAchievementData.length > 0)
+      ? computedAchievementData.filter(a => a.isEarned).length
+      : ((achievements || []).filter(a => a.status === 'Completed').length);
     
     return {
       totalHours,
       totalProjects,
       completedActivities: completedActivities.length,
-      completedAchievements: completedAchievements.length,
+      completedAchievements: completedAchievementsCount,
       inProgressActivities: activities?.filter(a => a.status === 'In Progress').length || 0
     };
   } catch (error) {

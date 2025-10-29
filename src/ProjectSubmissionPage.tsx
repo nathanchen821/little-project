@@ -394,7 +394,7 @@ const ProjectSubmissionPage: React.FC = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '1.5rem' }}>🤝</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Little Project</span>
+          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Project rush</span>
         </div>
         <div style={{ display: 'flex', gap: '2rem' }}>
           <a href="/" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Home</a>

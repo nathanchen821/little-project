@@ -49,7 +49,7 @@ function SignInPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '1.5rem' }}>🤝</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Little Project</span>
+          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Project rush</span>
         </div>
         <div style={{ display: 'flex', gap: '2rem' }}>
           <a href="/" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.2)' }}>Home</a>
@@ -78,7 +78,7 @@ function SignInPage() {
             marginBottom: '1rem',
             color: '#2E7D32'
           }}>
-            Welcome to Little Project
+            Welcome to Project rush
           </h1>
           <p style={{
             fontSize: '1.2rem',
@@ -145,7 +145,7 @@ function SignInPage() {
         padding: '2rem',
         marginTop: '3rem'
       }}>
-        <p>&copy; 2025 Little Project. Making a difference, one small act at a time.</p>
+        <p>&copy; 2025 Project rush. Making a difference, one small act at a time.</p>
       </footer>
     </div>
   );

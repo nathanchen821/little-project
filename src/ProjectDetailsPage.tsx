@@ -18,6 +18,9 @@ const ProjectDetailsPage: React.FC = () => {
   const [hasJoined, setHasJoined] = useState(false);
   const [joinLoading, setJoinLoading] = useState(false);
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const [joinRequestStatus, setJoinRequestStatus] = useState<'none' | 'pending' | 'accepted' | 'denied'>('none');
+  const [isCreator, setIsCreator] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   
   useEffect(() => {
     checkAuthState();
@@ -31,6 +34,7 @@ const ProjectDetailsPage: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated && project) {
       checkJoinStatus(project.id);
+      checkCreatorAndRequests(project);
     }
   }, [isAuthenticated, project]);
   
@@ -125,8 +129,51 @@ const ProjectDetailsPage: React.FC = () => {
       const hasJoined = existingActivities && existingActivities.length > 0;
       console.log('Has joined:', hasJoined);
       setHasJoined(hasJoined);
+
+      if (!hasJoined) {
+        // Check for existing pending/decided join request
+        const { data: existingRequests } = await authenticatedClient.models.JoinRequest.list({
+          filter: {
+            requesterUserId: { eq: userProfile.id },
+            projectId: { eq: projectId }
+          }
+        });
+
+        if (existingRequests && existingRequests.length > 0) {
+          const latest = existingRequests.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+          if (latest.status === 'Pending') setJoinRequestStatus('pending');
+          else if (latest.status === 'Accepted') setJoinRequestStatus('accepted');
+          else if (latest.status === 'Denied') setJoinRequestStatus('denied');
+          else setJoinRequestStatus('none');
+        } else {
+          setJoinRequestStatus('none');
+        }
+      } else {
+        setJoinRequestStatus('accepted');
+      }
     } catch (error) {
       console.error('Error checking join status:', error);
+    }
+  };
+
+  const checkCreatorAndRequests = async (proj: any) => {
+    try {
+      const { getOrCreateUserProfile } = await import('./utils/userProfile');
+      const userProfile = await getOrCreateUserProfile();
+      if (!userProfile) return;
+      const creatorFlag = userProfile.id === proj.createdById;
+      setIsCreator(creatorFlag);
+      if (creatorFlag) {
+        const { data: requests } = await authenticatedClient.models.JoinRequest.list({
+          filter: {
+            projectId: { eq: proj.id },
+            status: { eq: 'Pending' }
+          }
+        });
+        setPendingRequests(requests || []);
+      }
+    } catch (e) {
+      console.error('Error checking creator/requests:', e);
     }
   };
   
@@ -179,9 +226,60 @@ const ProjectDetailsPage: React.FC = () => {
         return;
       }
 
+      // Check if there is already a pending request
+      const { data: existingRequests } = await authenticatedClient.models.JoinRequest.list({
+        filter: {
+          requesterUserId: { eq: userProfile.id },
+          projectId: { eq: project.id },
+          status: { eq: 'Pending' }
+        }
+      });
+
+      if (existingRequests && existingRequests.length > 0) {
+        setNotification({ type: 'error', message: 'You already requested to join. Please wait for approval.' });
+        setJoinRequestStatus('pending');
+        return;
+      }
+
+      // Create join request
+      const { errors } = await authenticatedClient.models.JoinRequest.create({
+        requesterUserId: userProfile.id,
+        projectId: project.id,
+        status: 'Pending'
+      });
+
+      if (errors) {
+        console.error('Error creating join request:', errors);
+        setNotification({ type: 'error', message: 'Failed to request to join. Please try again.' });
+        return;
+      }
+
+      // Update local status
+      setJoinRequestStatus('pending');
+      setNotification({ type: 'success', message: 'Request sent. The project creator will review it shortly.' });
+      
+      // Auto-dismiss notification after 5 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+    } catch (error) {
+      console.error('Error requesting to join project:', error);
+      setNotification({ type: 'error', message: 'Failed to request to join. Please try again.' });
+      
+      // Auto-dismiss error notification after 5 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+    } finally {
+      setJoinLoading(false);
+    }
+  };
+
+  const handleAcceptRequest = async (request: any) => {
+    try {
       // Create volunteer activity
-      const { errors } = await authenticatedClient.models.VolunteerActivity.create({
-        userId: userProfile.id,
+      const { errors: activityErrors } = await authenticatedClient.models.VolunteerActivity.create({
+        userId: request.requesterUserId,
         projectId: project.id,
         status: 'Joined',
         joinedAt: new Date().toISOString(),
@@ -190,53 +288,55 @@ const ProjectDetailsPage: React.FC = () => {
         isVerified: false,
         certificateGenerated: false
       });
-
-      if (errors) {
-        console.error('Error creating volunteer activity:', errors);
-        setNotification({ type: 'error', message: 'Failed to join project. Please try again.' });
+      if (activityErrors) {
+        setNotification({ type: 'error', message: 'Failed to accept: could not add member.' });
         return;
       }
 
-      // Update project's current volunteers count
+      // Update project counts
       const newCurrentVolunteers = (project.currentVolunteers || 0) + 1;
       const newSpotsAvailable = (project.spotsAvailable || 0) - 1;
-
-      const { errors: updateErrors } = await authenticatedClient.models.Project.update({
+      await authenticatedClient.models.Project.update({
         id: project.id,
         currentVolunteers: newCurrentVolunteers,
         spotsAvailable: newSpotsAvailable
       });
 
-      if (updateErrors) {
-        console.error('Error updating project:', updateErrors);
-        // Don't show error to user since they're already joined
-      }
+      // Mark request accepted
+      await authenticatedClient.models.JoinRequest.update({
+        id: request.id,
+        status: 'Accepted',
+        decisionById: project.createdById,
+        decisionAt: new Date().toISOString()
+      });
 
-      // Update local project state
+      // Refresh UI
       setProject((prev: any) => ({
         ...prev,
         currentVolunteers: newCurrentVolunteers,
         spotsAvailable: newSpotsAvailable
       }));
+      setPendingRequests(pendingRequests.filter(r => r.id !== request.id));
+      setNotification({ type: 'success', message: 'Request accepted and member added.' });
+    } catch (e) {
+      console.error('Accept request error:', e);
+      setNotification({ type: 'error', message: 'Failed to accept request.' });
+    }
+  };
 
-      // Update join status
-      setHasJoined(true);
-      setNotification({ type: 'success', message: 'Successfully joined the project! Check your My Projects page for details.' });
-      
-      // Auto-dismiss notification after 5 seconds
-      setTimeout(() => {
-        setNotification(null);
-      }, 5000);
-    } catch (error) {
-      console.error('Error joining project:', error);
-      setNotification({ type: 'error', message: 'Failed to join project. Please try again.' });
-      
-      // Auto-dismiss error notification after 5 seconds
-      setTimeout(() => {
-        setNotification(null);
-      }, 5000);
-    } finally {
-      setJoinLoading(false);
+  const handleDenyRequest = async (request: any) => {
+    try {
+      await authenticatedClient.models.JoinRequest.update({
+        id: request.id,
+        status: 'Denied',
+        decisionById: project.createdById,
+        decisionAt: new Date().toISOString()
+      });
+      setPendingRequests(pendingRequests.filter(r => r.id !== request.id));
+      setNotification({ type: 'success', message: 'Request denied.' });
+    } catch (e) {
+      console.error('Deny request error:', e);
+      setNotification({ type: 'error', message: 'Failed to deny request.' });
     }
   };
 
@@ -344,7 +444,7 @@ const ProjectDetailsPage: React.FC = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '1.5rem' }}>🤝</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Little Project</span>
+          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Project rush</span>
         </div>
         <div style={{ display: 'flex', gap: '2rem' }}>
           <a href="/" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Home</a>
@@ -715,34 +815,112 @@ const ProjectDetailsPage: React.FC = () => {
           ) : (
             <>
               <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#2E7D32' }}>
-                Ready to Make a Difference?
+                {joinRequestStatus === 'pending' ? 'Request Pending' : 'Ready to Make a Difference?'}
               </h3>
-              <p style={{ color: '#666', marginBottom: '2rem' }}>
-                Join this {project.category.toLowerCase()} project and make a positive impact in your community!
-              </p>
+              {joinRequestStatus === 'pending' ? (
+                <p style={{ color: '#666', marginBottom: '2rem' }}>
+                  Your join request is awaiting the creator's approval.
+                </p>
+              ) : (
+                <p style={{ color: '#666', marginBottom: '2rem' }}>
+                  Request to join this {project.category.toLowerCase()} project and make a positive impact in your community!
+                </p>
+              )}
               <button
                 onClick={handleJoinProject}
-                disabled={joinLoading || project.spotsAvailable === 0}
+                disabled={joinLoading || joinRequestStatus === 'pending' || project.spotsAvailable === 0}
                 style={{
-                  background: project.spotsAvailable > 0 
-                    ? 'linear-gradient(135deg, #4CAF50, #45a049)' 
-                    : 'linear-gradient(135deg, #9E9E9E, #757575)',
+                  background: joinRequestStatus === 'pending'
+                    ? 'linear-gradient(135deg, #9E9E9E, #757575)'
+                    : (project.spotsAvailable > 0 
+                      ? 'linear-gradient(135deg, #4CAF50, #45a049)'
+                      : 'linear-gradient(135deg, #9E9E9E, #757575)'),
                   color: 'white',
                   border: 'none',
                   padding: '1rem 3rem',
                   borderRadius: '25px',
-                  cursor: project.spotsAvailable > 0 && !joinLoading ? 'pointer' : 'not-allowed',
+                  cursor: (project.spotsAvailable > 0 && !joinLoading && joinRequestStatus !== 'pending') ? 'pointer' : 'not-allowed',
                   fontWeight: 'bold',
                   fontSize: '1.1rem',
                   transition: 'transform 0.3s',
                   opacity: joinLoading ? 0.7 : 1
                 }}
               >
-                {joinLoading ? 'Joining...' : (project.spotsAvailable > 0 ? 'Join This Project' : 'Project Full - Join Waitlist')}
+                {joinRequestStatus === 'pending'
+                  ? 'Requested'
+                  : joinLoading
+                    ? 'Requesting...'
+                    : (project.spotsAvailable > 0 ? 'Request to Join' : 'Project Full - Request Waitlist')}
               </button>
             </>
           )}
         </div>
+
+        {/* Creator: Review Join Requests */}
+        {isCreator && (
+          <div style={{
+            background: 'white',
+            borderRadius: '15px',
+            padding: '2rem',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+            marginTop: '2rem'
+          }}>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#2E7D32' }}>
+              Pending Join Requests
+            </h3>
+            {pendingRequests.length === 0 ? (
+              <p style={{ color: '#666' }}>No pending requests.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {pendingRequests.map((req: any) => (
+                  <div key={req.id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    padding: '1rem'
+                  }}>
+                    <div style={{ color: '#333' }}>
+                      <strong>Requester:</strong> {req.requesterUserId}
+                      <span style={{ marginLeft: '1rem', color: '#666' }}>
+                        Requested at {new Date(req.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => handleAcceptRequest(req)}
+                        style={{
+                          background: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '8px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => handleDenyRequest(req)}
+                        style={{
+                          background: '#ef4444',
+                          color: 'white',
+                          border: 'none',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '8px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Deny
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Footer */}
@@ -753,7 +931,7 @@ const ProjectDetailsPage: React.FC = () => {
         padding: '2rem',
         marginTop: '3rem'
       }}>
-        <p>&copy; 2025 Little Project. Making a difference, one small act at a time.</p>
+        <p>&copy; 2025 Project rush. Making a difference, one small act at a time.</p>
       </footer>
     </div>
   );

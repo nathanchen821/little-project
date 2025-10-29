@@ -1,7 +1,7 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 /**
- * Little Project - Data Model Schema
+ * Project rush - Data Model Schema
  * AWS Amplify Gen2 with DynamoDB
  * 
  * This schema defines all data models for the volunteer management platform
@@ -149,6 +149,7 @@ const schema = a.schema({
       organization: a.belongsTo('Organization', 'organizationId'),
       createdBy: a.belongsTo('User', 'createdById'),
       volunteerActivities: a.hasMany('VolunteerActivity', 'projectId'),
+      joinRequests: a.hasMany('JoinRequest', 'projectId'),
     })
     .authorization(allow => [
       // Allow public read access for approved projects
@@ -187,6 +188,28 @@ const schema = a.schema({
       project: a.belongsTo('Project', 'projectId'),
     })
     .authorization(allow => [
+      allow.authenticated(),
+      allow.group('admins'),
+    ]),
+
+  /**
+   * JoinRequest - Request/approval workflow for joining projects
+   */
+  JoinRequest: a
+    .model({
+      projectId: a.id().required(),
+      requesterUserId: a.id().required(),
+      status: a.string().required().default('Pending'), // Pending | Accepted | Denied | Cancelled
+      message: a.string(),
+      decisionById: a.id(),
+      decisionAt: a.datetime(),
+
+      // Relationships
+      project: a.belongsTo('Project', 'projectId'),
+      requester: a.belongsTo('User', 'requesterUserId'),
+    })
+    .authorization(allow => [
+      // Authenticated users can create and read; app-level logic restricts visibility
       allow.authenticated(),
       allow.group('admins'),
     ]),

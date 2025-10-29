@@ -1,10 +1,10 @@
-# Little Project - Volunteer Management Platform
+# Project rush - Volunteer Management Platform
 
 A web platform that connects high school students with local volunteer opportunities, featuring project management, hour tracking, achievements, and leaderboards.
 
 ## 🌟 What It Does
 
-Little Project helps students find volunteer work in their community while tracking their impact. Students can:
+Project rush helps students find volunteer work in their community while tracking their impact. Students can:
 - Browse and join volunteer projects
 - Submit their own project ideas
 - Track volunteer hours and earn points
@@ -202,4 +202,4 @@ Check the FAQ page (`/faq`) for answers to common questions about:
 
 ---
 
-*Little Project - Connecting students with community volunteer opportunities*
+*Project rush - Connecting students with community volunteer opportunities*

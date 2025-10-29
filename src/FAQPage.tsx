@@ -151,7 +151,7 @@ const FAQPage: React.FC = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '1.5rem' }}>🤝</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Little Project</span>
+          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Project rush</span>
         </div>
         <div style={{ display: 'flex', gap: '2rem' }}>
           <a href="/" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Home</a>
@@ -225,7 +225,7 @@ const FAQPage: React.FC = () => {
             maxWidth: '600px',
             margin: '0 auto'
           }}>
-            Everything you need to know about using Little Project
+            Everything you need to know about using Project rush
           </p>
         </div>
 
@@ -303,7 +303,7 @@ const FAQPage: React.FC = () => {
         marginTop: '3rem'
       }}>
         <p style={{ margin: '0', opacity: 0.9 }}>
-          © 2024 Little Project. Making a difference, one volunteer at a time.
+          © 2024 Project rush. Making a difference, one volunteer at a time.
         </p>
       </footer>
     </div>

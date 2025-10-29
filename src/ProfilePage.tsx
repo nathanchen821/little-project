@@ -285,6 +285,16 @@ const ProfilePage: React.FC = () => {
   }
 
   // Format achievement data for display
+  const getNextStepGoal = (value: number, step: number) => {
+    if (step <= 0) return value;
+    return Math.floor(value / step) * step + step;
+  };
+  // Prefer computed stats, but fall back to profile-stored totals so values never disappear
+  const displayHoursVal = Math.max(userStats?.totalHours || 0, userProfile.totalHours || 0);
+  const displayProjectsVal = Math.max(userStats?.totalProjects || 0, userProfile.totalProjects || 0);
+  const nextHoursGoal = getNextStepGoal(displayHoursVal, 10); // advance by +10 hours
+  const nextProjectsGoal = getNextStepGoal(displayProjectsVal, 5); // advance by +5 projects
+
   const formatAchievementDate = (dateString: string | null) => {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -343,7 +353,7 @@ const ProfilePage: React.FC = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '1.5rem' }}>🤝</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Little Project</span>
+          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Project rush</span>
         </div>
         <div style={{ display: 'flex', gap: '2rem' }}>
           <a href="/" style={{ color: 'white', textDecoration: 'none', padding: '0.5rem 1rem', borderRadius: '20px' }}>Home</a>
@@ -486,7 +496,7 @@ const ProfilePage: React.FC = () => {
             { id: 'achievements', label: 'Achievements', icon: '🏆' },
             // { id: 'social', label: 'Social', icon: '👥' }, // Hidden until implementation
             // { id: 'stories', label: 'Stories & Photos', icon: '📸' }, // Hidden until implementation
-            { id: 'trophies', label: 'Trophies', icon: '🏅' },
+            // { id: 'trophies', label: 'Trophies', icon: '🏅' }, // disabled for now
             { id: 'challenges', label: 'Challenges', icon: '🎯' }
           ].map(tab => (
             <button
@@ -597,7 +607,7 @@ const ProfilePage: React.FC = () => {
                   textAlign: 'center'
                 }}>
                   <h3 style={{ fontSize: '3rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                    {userProfile.totalHours}
+                    {displayHoursVal}
                   </h3>
                   <p style={{ color: '#666', fontWeight: 'bold', marginBottom: '1rem' }}>
                     Hours Volunteered
@@ -612,10 +622,10 @@ const ProfilePage: React.FC = () => {
                       background: 'linear-gradient(135deg, #4CAF50, #45a049)',
                       height: '100%',
                       borderRadius: '10px',
-                      width: `${Math.min((userProfile.totalHours / 50) * 100, 100)}%`
+                      width: `${Math.min((displayHoursVal / nextHoursGoal) * 100, 100)}%`
                     }}></div>
                   </div>
-                  <small style={{ color: '#666' }}>Goal: 50 hours</small>
+                  <small style={{ color: '#666' }}>Goal: {nextHoursGoal} hours</small>
                 </div>
 
                 <div style={{
@@ -626,7 +636,7 @@ const ProfilePage: React.FC = () => {
                   textAlign: 'center'
                 }}>
                   <h3 style={{ fontSize: '3rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                    {userProfile.totalProjects}
+                    {displayProjectsVal}
                   </h3>
                   <p style={{ color: '#666', fontWeight: 'bold', marginBottom: '1rem' }}>
                     Projects Completed
@@ -641,10 +651,10 @@ const ProfilePage: React.FC = () => {
                       background: 'linear-gradient(135deg, #4CAF50, #45a049)',
                       height: '100%',
                       borderRadius: '10px',
-                      width: `${Math.min((userProfile.totalProjects / 10) * 100, 100)}%`
+                      width: `${Math.min((displayProjectsVal / nextProjectsGoal) * 100, 100)}%`
                     }}></div>
                   </div>
-                  <small style={{ color: '#666' }}>Goal: 10 projects</small>
+                  <small style={{ color: '#666' }}>Goal: {nextProjectsGoal} projects</small>
                 </div>
 
                 <div style={{
@@ -655,7 +665,7 @@ const ProfilePage: React.FC = () => {
                   textAlign: 'center'
                 }}>
                   <h3 style={{ fontSize: '3rem', color: '#4CAF50', marginBottom: '0.5rem' }}>
-                    {userStats?.completedAchievements || 0}
+                    {achievements?.filter((a: any) => a.isEarned)?.length || 0}
                   </h3>
                   <p style={{ color: '#666', fontWeight: 'bold', marginBottom: '1rem' }}>
                     Achievements Earned
@@ -670,7 +680,7 @@ const ProfilePage: React.FC = () => {
                       background: 'linear-gradient(135deg, #4CAF50, #45a049)',
                       height: '100%',
                       borderRadius: '10px',
-                      width: `${Math.min(((userStats?.completedAchievements || 0) / 10) * 100, 100)}%`
+                      width: `${Math.min(((achievements?.filter((a: any) => a.isEarned)?.length || 0) / 10) * 100, 100)}%`
                     }}></div>
                   </div>
                   <small style={{ color: '#666' }}>Goal: 10 achievements</small>
@@ -1111,139 +1121,7 @@ const ProfilePage: React.FC = () => {
           </section>
         )}
 
-        {/* Trophies Tab */}
-        {activeTab === 'trophies' && (
-          <section>
-            <h2 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', color: '#2E7D32' }}>
-              🏆 Trophies & Certificates
-            </h2>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '2rem'
-            }}>
-              <div style={{
-                background: 'white',
-                borderRadius: '15px',
-                padding: '2rem',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📜</div>
-                <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
-                  Food Bank Volunteer
-                </h3>
-                <p style={{ color: '#666', marginBottom: '1rem' }}>
-                  4 hours • November 30, 2025
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                  <button style={{
-                    background: 'linear-gradient(135deg, #4CAF50, #45a049)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}>
-                    📥 Download PDF
-                  </button>
-                  <button style={{
-                    background: 'linear-gradient(135deg, #2196F3, #1976D2)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}>
-                    📤 Share
-                  </button>
-                </div>
-              </div>
-
-              <div style={{
-                background: 'white',
-                borderRadius: '15px',
-                padding: '2rem',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📜</div>
-                <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
-                  Senior Center Activities
-                </h3>
-                <p style={{ color: '#666', marginBottom: '1rem' }}>
-                  2.5 hours • November 25, 2025
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                  <button style={{
-                    background: 'linear-gradient(135deg, #4CAF50, #45a049)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}>
-                    📥 Download PDF
-                  </button>
-                  <button style={{
-                    background: 'linear-gradient(135deg, #2196F3, #1976D2)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}>
-                    📤 Share
-                  </button>
-                </div>
-              </div>
-
-              <div style={{
-                background: 'white',
-                borderRadius: '15px',
-                padding: '2rem',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📜</div>
-                <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: '#2E7D32' }}>
-                  Tutoring Program
-                </h3>
-                <p style={{ color: '#666', marginBottom: '1rem' }}>
-                  6 hours • November 15, 2025
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                  <button style={{
-                    background: 'linear-gradient(135deg, #4CAF50, #45a049)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}>
-                    📥 Download PDF
-                  </button>
-                  <button style={{
-                    background: 'linear-gradient(135deg, #2196F3, #1976D2)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}>
-                    📤 Share
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
+        {/* Trophies Tab - disabled */}
       </main>
 
       {/* Footer */}
@@ -1254,7 +1132,7 @@ const ProfilePage: React.FC = () => {
         padding: '2rem',
         marginTop: '3rem'
       }}>
-        <p>&copy; 2025 Little Project. Making a difference, one small act at a time.</p>
+        <p>&copy; 2025 Project rush. Making a difference, one small act at a time.</p>
       </footer>
     </div>
   );
